@@ -1,0 +1,479 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  school_admin
+  storekeeper
+  auditor
+  supplier_admin
+  supplier_staff
+}
+
+enum LedgerReason {
+  receive
+  issue
+  void
+  adjust
+  shortage
+}
+
+enum IssueStatus {
+  issued
+  voided
+}
+
+enum OrderStatus {
+  draft
+  confirmed
+  fulfilled
+  cancelled
+}
+
+enum DeliveryStatus {
+  packed
+  in_transit
+  delivered
+  cancelled
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  void
+}
+
+enum PaymentMethod {
+  cash
+  bank
+  mpesa
+  other
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  cancelled
+}
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  /// School Master / external SIS school identifier
+  schoolMasterExternalId String?
+  /// Visible API key prefix (udsk_<prefix>_…)
+  apiKeyPrefix           String?
+  apiKeyHash             String?
+  lastRosterSyncAt       DateTime?
+  lastRosterSyncNote     String?
+
+  users              User[]
+  students           Student[]
+  items              Item[]
+  kits               Kit[]
+  stockBalances      StockBalance[]
+  stockLedgerEntries StockLedgerEntry[]
+  inboundReceipts    InboundReceipt[]
+  issueSlips         IssueSlip[]
+  supplierLinks      SupplierSchool[]
+  orders             SupplyOrder[]
+  deliveries         Delivery[]
+  invoices           Invoice[]
+  payments           Payment[]
+}
+
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  /// White-label portal branding
+  brandName    String?
+  brandPrimary String?
+  brandMark    String?
+  supportEmail String?
+  supportPhone String?
+
+  users      User[]
+  products   SupplierProduct[]
+  schools    SupplierSchool[]
+  orders     SupplyOrder[]
+  deliveries Delivery[]
+  invoices   Invoice[]
+  payments   Payment[]
+}
+
+model SupplierSchool {
+  id         String   @id @default(cuid())
+  supplierId String
+  schoolId   String
+  createdAt  DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  school   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([supplierId, schoolId])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  schoolId     String?
+  supplierId   String?
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  school              School?            @relation(fields: [schoolId], references: [id])
+  supplier            Supplier?          @relation(fields: [supplierId], references: [id])
+  receivedReceipts    InboundReceipt[]   @relation("ReceivedBy")
+  issuedSlips         IssueSlip[]        @relation("IssuedBy")
+  voidedSlips         IssueSlip[]        @relation("VoidedBy")
+  ledgerEntries       StockLedgerEntry[]
+  createdOrders       SupplyOrder[]      @relation("OrderCreatedBy")
+  createdDeliveries   Delivery[]         @relation("DeliveryCreatedBy")
+  createdInvoices     Invoice[]          @relation("InvoiceCreatedBy")
+  recordedPayments    Payment[]          @relation("PaymentRecordedBy")
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  schoolId    String
+  admissionNo String
+  fullName    String
+  className   String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  school     School      @relation(fields: [schoolId], references: [id])
+  issueSlips IssueSlip[]
+
+  @@unique([schoolId, admissionNo])
+  @@index([schoolId, fullName])
+}
+
+model Item {
+  id        String   @id @default(cuid())
+  schoolId  String
+  sku       String
+  name      String
+  category  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  school             School             @relation(fields: [schoolId], references: [id])
+  sizes              ItemSize[]
+  kitLines           KitLine[]
+  stockBalances      StockBalance[]
+  stockLedgerEntries StockLedgerEntry[]
+  inboundLines       InboundLine[]
+  issueLines         IssueLine[]
+  deliveryLines      DeliveryLine[]
+
+  @@unique([schoolId, sku])
+}
+
+model ItemSize {
+  id        String @id @default(cuid())
+  itemId    String
+  sizeLabel String
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, sizeLabel])
+}
+
+model Kit {
+  id           String   @id @default(cuid())
+  schoolId     String
+  name         String
+  academicYear String
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  school School    @relation(fields: [schoolId], references: [id])
+  lines  KitLine[]
+}
+
+model KitLine {
+  id         String @id @default(cuid())
+  kitId      String
+  itemId     String
+  qtyDefault Int    @default(1)
+
+  kit  Kit  @relation(fields: [kitId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id])
+
+  @@unique([kitId, itemId])
+}
+
+model StockBalance {
+  id        String @id @default(cuid())
+  schoolId  String
+  itemId    String
+  sizeLabel String
+  qtyOnHand Int    @default(0)
+
+  school School @relation(fields: [schoolId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  @@unique([schoolId, itemId, sizeLabel])
+}
+
+model StockLedgerEntry {
+  id          String       @id @default(cuid())
+  schoolId    String
+  itemId      String
+  sizeLabel   String
+  qtyDelta    Int
+  reason      LedgerReason
+  refType     String?
+  refId       String?
+  actorUserId String?
+  note        String?
+  createdAt   DateTime     @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  item   Item   @relation(fields: [itemId], references: [id])
+  actor  User?  @relation(fields: [actorUserId], references: [id])
+
+  @@index([schoolId, createdAt])
+  @@index([refType, refId])
+}
+
+model InboundReceipt {
+  id           String   @id @default(cuid())
+  schoolId     String
+  receivedById String
+  supplierName String
+  receivedAt   DateTime @default(now())
+  note         String?
+  deliveryId   String?  @unique
+
+  school     School        @relation(fields: [schoolId], references: [id])
+  receivedBy User          @relation("ReceivedBy", fields: [receivedById], references: [id])
+  delivery   Delivery?     @relation(fields: [deliveryId], references: [id])
+  lines      InboundLine[]
+}
+
+model InboundLine {
+  id        String @id @default(cuid())
+  receiptId String
+  itemId    String
+  sizeLabel String
+  qty       Int
+
+  receipt InboundReceipt @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  item    Item           @relation(fields: [itemId], references: [id])
+}
+
+model IssueSlip {
+  id                      String      @id @default(cuid())
+  schoolId                String
+  slipNo                  String
+  studentId               String
+  issuedById              String
+  issuedAt                DateTime    @default(now())
+  status                  IssueStatus @default(issued)
+  voidedAt                DateTime?
+  voidedById              String?
+  voidReason              String?
+  acknowledgmentName      String
+  acknowledgmentSignature String
+  acknowledgedAt          DateTime
+  /// Unguessable token for guardian / public proof link
+  publicToken             String      @unique
+
+  school   School      @relation(fields: [schoolId], references: [id])
+  student  Student     @relation(fields: [studentId], references: [id])
+  issuedBy User        @relation("IssuedBy", fields: [issuedById], references: [id])
+  voidedBy User?       @relation("VoidedBy", fields: [voidedById], references: [id])
+  lines    IssueLine[]
+
+  @@unique([schoolId, slipNo])
+  @@index([schoolId, issuedAt])
+  @@index([schoolId, status])
+}
+
+model IssueLine {
+  id           String @id @default(cuid())
+  slipId       String
+  itemId       String
+  sizeLabel    String
+  qtyRequested Int
+  qtyIssued    Int
+  shortageQty  Int    @default(0)
+
+  slip IssueSlip @relation(fields: [slipId], references: [id], onDelete: Cascade)
+  item Item      @relation(fields: [itemId], references: [id])
+}
+
+model SupplierProduct {
+  id         String   @id @default(cuid())
+  supplierId String
+  sku        String
+  name       String
+  category   String
+  unitPrice  Int      @default(0)
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  supplier      Supplier              @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  sizes         SupplierProductSize[]
+  orderLines    SupplyOrderLine[]
+  deliveryLines DeliveryLine[]
+
+  @@unique([supplierId, sku])
+}
+
+model SupplierProductSize {
+  id        String @id @default(cuid())
+  productId String
+  sizeLabel String
+
+  product SupplierProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, sizeLabel])
+}
+
+model SupplyOrder {
+  id              String      @id @default(cuid())
+  orderNo         String
+  supplierId      String
+  schoolId        String
+  status          OrderStatus @default(draft)
+  note            String?
+  createdById     String
+  createdAt       DateTime    @default(now())
+  confirmedAt     DateTime?
+  fulfilledAt     DateTime?
+
+  supplier    Supplier          @relation(fields: [supplierId], references: [id])
+  school      School            @relation(fields: [schoolId], references: [id])
+  createdBy   User              @relation("OrderCreatedBy", fields: [createdById], references: [id])
+  lines       SupplyOrderLine[]
+  deliveries  Delivery[]
+
+  @@unique([supplierId, orderNo])
+  @@index([schoolId, status])
+  @@index([supplierId, status])
+}
+
+model SupplyOrderLine {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  sizeLabel String
+  qty       Int
+  unitPrice Int
+
+  order   SupplyOrder     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product SupplierProduct @relation(fields: [productId], references: [id])
+}
+
+model Delivery {
+  id            String         @id @default(cuid())
+  deliveryNo    String
+  supplierId    String
+  schoolId      String
+  orderId       String?
+  status        DeliveryStatus @default(packed)
+  note          String?
+  createdById   String
+  createdAt     DateTime       @default(now())
+  dispatchedAt  DateTime?
+  deliveredAt   DateTime?
+
+  supplier  Supplier         @relation(fields: [supplierId], references: [id])
+  school    School           @relation(fields: [schoolId], references: [id])
+  order     SupplyOrder?     @relation(fields: [orderId], references: [id])
+  createdBy User             @relation("DeliveryCreatedBy", fields: [createdById], references: [id])
+  lines     DeliveryLine[]
+  receipt   InboundReceipt?
+  invoice   Invoice?
+
+  @@unique([supplierId, deliveryNo])
+  @@index([schoolId, status])
+  @@index([supplierId, status])
+}
+
+model DeliveryLine {
+  id               String @id @default(cuid())
+  deliveryId       String
+  productId        String
+  schoolItemId     String?
+  sizeLabel        String
+  qty              Int
+  unitPrice        Int    @default(0)
+
+  delivery   Delivery        @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  product    SupplierProduct @relation(fields: [productId], references: [id])
+  schoolItem Item?           @relation(fields: [schoolItemId], references: [id])
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  invoiceNo   String
+  supplierId  String
+  schoolId    String
+  deliveryId  String?       @unique
+  status      InvoiceStatus @default(draft)
+  amountCents Int           @default(0)
+  note        String?
+  createdById String
+  createdAt   DateTime      @default(now())
+  issuedAt    DateTime?
+  paidAt      DateTime?
+
+  supplier  Supplier  @relation(fields: [supplierId], references: [id])
+  school    School    @relation(fields: [schoolId], references: [id])
+  delivery  Delivery? @relation(fields: [deliveryId], references: [id])
+  createdBy User      @relation("InvoiceCreatedBy", fields: [createdById], references: [id])
+  payments  Payment[]
+
+  @@unique([supplierId, invoiceNo])
+  @@index([schoolId, status])
+  @@index([supplierId, status])
+}
+
+model Payment {
+  id           String        @id @default(cuid())
+  paymentNo    String
+  invoiceId    String
+  supplierId   String
+  schoolId     String
+  amountCents  Int
+  method       PaymentMethod
+  status       PaymentStatus @default(pending)
+  reference    String?
+  provider     String?
+  providerRef  String?
+  phone        String?
+  note         String?
+  recordedById String?
+  createdAt    DateTime      @default(now())
+  completedAt  DateTime?
+  failedAt     DateTime?
+
+  invoice    Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  school     School   @relation(fields: [schoolId], references: [id])
+  recordedBy User?    @relation("PaymentRecordedBy", fields: [recordedById], references: [id])
+
+  @@unique([supplierId, paymentNo])
+  @@index([invoiceId, status])
+  @@index([providerRef])
+}

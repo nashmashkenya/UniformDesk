@@ -1,0 +1,25 @@
+{
+  "name": "UniformDesk",
+  "short_name": "UniformDesk",
+  "description": "Supplier supply · School issue · Proof for every student",
+  "start_url": "/issue",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#faf9f8",
+  "theme_color": "#0f6cbd",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
