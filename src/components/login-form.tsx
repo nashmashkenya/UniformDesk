@@ -10,9 +10,13 @@ export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, initial);
   const searchParams = useSearchParams();
   const ssoError = searchParams.get("error") === "sso";
+  const next = searchParams.get("next") ?? "";
 
   return (
     <form action={action} className="space-y-4">
+      {next.startsWith("/") && !next.startsWith("//") && (
+        <input type="hidden" name="next" value={next} />
+      )}
       {ssoError && (
         <p className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger)]">
           School Master SSO link was invalid or expired. Sign in below.

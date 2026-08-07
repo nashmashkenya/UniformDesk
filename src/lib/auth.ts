@@ -1,11 +1,13 @@
 import { cookies } from "next/headers";
-import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import {
+  SESSION_COOKIE,
+  signSessionToken,
+  verifySessionToken,
+} from "@/lib/session-token";
 import type { Role } from "@/generated/prisma/client";
-
-const COOKIE_NAME = "ud_session";
 
 export type SessionUser = {
   id: string;
@@ -19,12 +21,6 @@ export type SessionUser = {
   tenant: "school" | "supplier";
 };
 
-function secretKey() {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is not set");
-  return new TextEncoder().encode(secret);
-}
-
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
@@ -34,14 +30,10 @@ export async function verifyPassword(password: string, hash: string) {
 }
 
 export async function createSession(userId: string) {
-  const token = await new SignJWT({ sub: userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secretKey());
+  const token = await signSessionToken(userId);
 
   const jar = await cookies();
-  jar.set(COOKIE_NAME, token, {
+  jar.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -52,17 +44,16 @@ export async function createSession(userId: string) {
 
 export async function destroySession() {
   const jar = await cookies();
-  jar.delete(COOKIE_NAME);
+  jar.delete(SESSION_COOKIE);
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const jar = await cookies();
-  const token = jar.get(COOKIE_NAME)?.value;
+  const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
   try {
-    const { payload } = await jwtVerify(token, secretKey());
-    const userId = payload.sub;
+    const userId = await verifySessionToken(token);
     if (!userId) return null;
 
     const user = await prisma.user.findFirst({

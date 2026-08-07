@@ -7,12 +7,14 @@ Phases 1–11: … → activity → low-stock reorder → desk search.
 ## Stack
 
 - Next.js (App Router) + TypeScript
-- Prisma + SQLite (local; Postgres-ready schema)
-- Session auth (JWT cookie) + RBAC
+- Prisma + SQLite (local / CI); Postgres cutover guide in [`docs/PRODUCTION.md`](./docs/PRODUCTION.md)
+- Session auth (JWT cookie) + edge middleware + RBAC
+- GitHub Actions CI on `main` / PRs
 
 ## Setup
 
 ```bash
+cp .env.example .env   # set AUTH_SECRET
 npm install
 npx prisma migrate dev
 npm run db:seed
@@ -170,5 +172,12 @@ Vitest suite under `tests/` covers the spine invariants:
 - `/supplier/activity` — supply timeline (orders, pack/dispatch/delivered, invoices, payment confirmations)
 - Correlation IDs (PO / DN / INV / PAY) for support
 - More menu → Activity
+
+## Phase 17 (production hardening)
+
+- `.env.example` — required env vars documented
+- Edge middleware — JWT session gate (public: login, proof, offline, School Master / M-Pesa APIs)
+- GitHub Actions CI — `prisma migrate deploy` + `npm test` + `npm run build`
+- [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) — Postgres cutover + go-live checklist
 
 Sample student CSV: [`/sample-students.csv`](./public/sample-students.csv)

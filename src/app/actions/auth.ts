@@ -46,7 +46,16 @@ export async function loginAction(
 
   await createSession(user.id);
   const session = await getSessionUser();
-  redirect(session ? homePathForUser(session) : "/");
+  const home = session ? homePathForUser(session) : "/";
+  const nextRaw = formData.get("next");
+  const next =
+    typeof nextRaw === "string" &&
+    nextRaw.startsWith("/") &&
+    !nextRaw.startsWith("//") &&
+    !nextRaw.startsWith("/login")
+      ? nextRaw
+      : home;
+  redirect(next);
 }
 
 export async function logoutAction() {
