@@ -1,12 +1,9 @@
 import { format } from "date-fns";
 import { notFound } from "next/navigation";
-import { PrintButton } from "@/components/print-button";
-import { ShareProof } from "@/components/share-proof";
 import { VoidForm } from "@/components/void-form";
 import { canWrite, requireSchoolUser } from "@/lib/auth";
-import { proofUrl } from "@/lib/url";
+import { issuerAffiliation } from "@/modules/issue/access";
 import { getSlip } from "@/modules/issue/issue";
-import { qrDataUrlForToken } from "@/modules/issue/proof";
 
 export default async function SlipPage({
   params,
@@ -18,33 +15,24 @@ export default async function SlipPage({
   const slip = await getSlip(user.schoolId, id);
   if (!slip) notFound();
 
-  const verifyUrl = proofUrl(slip.publicToken);
-  const qr = await qrDataUrlForToken(slip.publicToken);
-
   return (
     <div className="page-stack mx-auto max-w-3xl">
       <header className="page-header no-print">
         <div className="page-header-main">
-          <h1 className="page-title">Issue slip</h1>
-          <p className="page-sub">{slip.slipNo}</p>
+          <h1 className="page-title">Issue record</h1>
+          <p className="page-sub">
+            {slip.slipNo} · staff record (no parent slip)
+          </p>
         </div>
-        <PrintButton label="Print slip" />
       </header>
 
-      <ShareProof
-        url={verifyUrl}
-        studentName={slip.student.fullName}
-        slipNo={slip.slipNo}
-      />
-
-      <article className="print-sheet card">
+      <article className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title text-base">UniformDesk</h2>
-            <p className="card-subtitle">{slip.school.name}</p>
+            <h2 className="card-title text-base">{slip.school.name}</h2>
+            <p className="card-subtitle">{slip.slipNo}</p>
           </div>
           <div className="text-right">
-            <div className="text-sm font-semibold">{slip.slipNo}</div>
             <div className="text-xs text-[var(--muted)]">
               {format(slip.issuedAt, "dd MMM yyyy HH:mm")}
             </div>
@@ -70,33 +58,22 @@ export default async function SlipPage({
             </div>
             <div className="card-inset">
               <div className="section-label">Issued by</div>
-              <div className="mt-1 font-semibold">{slip.issuedBy.name}</div>
+              <div className="mt-1 font-semibold">
+                {issuerAffiliation(slip.issuedBy)}
+              </div>
               <div className="text-[var(--muted)]">
-                Ack: {slip.acknowledgmentName}
+                {slip.paymentMethod
+                  ? `Paid: ${slip.paymentMethod}${
+                      slip.paymentReference
+                        ? ` · ${slip.paymentReference}`
+                        : ""
+                    }`
+                  : "Payment not recorded"}
               </div>
             </div>
           </div>
 
-          <div className="space-y-2 sm:hidden">
-            {slip.lines.map((line) => (
-              <div key={line.id} className="card-inset text-sm">
-                <div className="font-semibold">
-                  {line.item.name} · {line.sizeLabel}
-                </div>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="chip">Req {line.qtyRequested}</span>
-                  <span className="chip chip-ok">Issued {line.qtyIssued}</span>
-                  {line.shortageQty > 0 && (
-                    <span className="chip chip-warn">
-                      Short {line.shortageQty}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="table-wrap hidden overflow-hidden rounded-[6px] border border-[var(--line)] sm:block">
+          <div className="table-wrap overflow-hidden rounded-[6px] border border-[var(--line)]">
             <table className="data-table min-w-0">
               <thead>
                 <tr>
@@ -119,31 +96,6 @@ export default async function SlipPage({
                 ))}
               </tbody>
             </table>
-          </div>
-
-          <div>
-            <div className="section-label">Signature</div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={slip.acknowledgmentSignature}
-              alt="Acknowledgment signature"
-              className="mt-2 h-28 w-full max-w-md rounded-[6px] border border-[var(--line)] bg-[var(--surface-2)] object-contain"
-            />
-          </div>
-
-          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="section-label">Guardian verify</div>
-              <p className="mt-1 max-w-sm text-xs text-[var(--muted)]">
-                Scan or open the public proof link. No school login required.
-              </p>
-            </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qr}
-              alt="QR code linking to public issue proof"
-              className="h-[120px] w-[120px] rounded-[4px] border border-[var(--line)] bg-white p-1"
-            />
           </div>
 
           {slip.status === "voided" && (

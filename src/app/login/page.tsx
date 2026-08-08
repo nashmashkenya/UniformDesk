@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { LoginForm } from "@/components/login-form";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -9,54 +10,70 @@ export default async function LoginPage() {
   if (user) redirect(homePathForUser(user));
 
   return (
-    <main className="hero-shell">
-      <section className="hero-stage">
-        <div className="absolute left-4 top-4 z-20 sm:left-6 sm:top-6">
+    <main className="login-shell">
+      <div className="login-bg" aria-hidden>
+        <Image
+          src="/login/students-kenya-central.png"
+          alt="Kenyan secondary students in school uniforms"
+          fill
+          priority
+          unoptimized
+          sizes="100vw"
+          className="login-bg-image"
+        />
+        <div className="login-bg-shade" />
+      </div>
+
+      <div className="login-topbar">
+        <div className="login-theme-chip">
           <ThemeMenu align="left" />
         </div>
+      </div>
 
-        <div className="hero-content animate-rise">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-[4px] bg-white/15 px-2 py-1 text-xs font-semibold">
-            <span className="grid h-5 w-5 place-items-center rounded-[3px] bg-white text-[10px] font-bold text-[#0f6cbd]">
+      <div className="login-layout">
+        <div className="login-center animate-rise">
+          <section className="login-brand">
+            <div className="login-mark" aria-hidden>
               UD
-            </span>
-            Office-style workspace
-          </div>
-          <h1 className="hero-brand">UniformDesk</h1>
-          <p className="hero-line">Issue uniforms with proof from a familiar office desk.</p>
-          <p className="hero-support">
-            Fluent-inspired layout for storekeepers: issue, receive, stock, and
-            reports in one place.
-          </p>
-          <div className="hero-cta-row no-print">
-            <a href="#sign-in" className="btn btn-hero">
-              Sign in
-            </a>
-          </div>
-        </div>
-      </section>
-
-      <section id="sign-in" className="hero-auth">
-        <div className="hero-auth-card card animate-rise animate-rise-delay-1">
-          <div className="card-header">
-            <div>
-              <h2 className="card-title text-base">Sign in</h2>
-              <p className="card-subtitle">
-                School desk or supplier supply account
-              </p>
             </div>
-          </div>
-          <div className="card-body">
-            <Suspense fallback={<p className="text-sm text-[var(--muted)]">Loading…</p>}>
-              <LoginForm />
-            </Suspense>
-          </div>
-          <div className="card-footer space-y-1 text-xs text-[var(--muted)]">
-            <div>School · store@greenfield.school / desk1234</div>
-            <div>Supplier · supply@uniformdesk.co / desk1234</div>
-          </div>
+            <h1 className="login-brand-title">UniformDesk</h1>
+            <p className="login-brand-line">
+              Uniform stock and admission issue for Kenyan senior schools —
+              run with your supplier at the desk.
+            </p>
+          </section>
+
+          <section id="sign-in" className="login-panel-wrap">
+            <div className="login-glass">
+              <header className="login-glass-header">
+                <h2 className="login-glass-title">Sign in</h2>
+                <p className="login-glass-sub">
+                  Supplier admin, staff, or school reporter
+                </p>
+              </header>
+              <div className="login-glass-body">
+                <Suspense
+                  fallback={
+                    <p className="text-sm text-white/70">Loading…</p>
+                  }
+                >
+                  <LoginForm variant="glass" />
+                </Suspense>
+              </div>
+              <footer className="login-glass-footer">
+                <details className="login-demo">
+                  <summary>Demo accounts</summary>
+                  <div className="login-demo-list">
+                    <div>Supplier · supply@uniformdesk.co / desk1234</div>
+                    <div>Staff · staff@uniformdesk.co / desk1234</div>
+                    <div>School · report@greenfield.school / desk1234</div>
+                  </div>
+                </details>
+              </footer>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

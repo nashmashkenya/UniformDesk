@@ -37,6 +37,8 @@ beforeEach(async () => {
   await prisma.supplyOrder.deleteMany();
   await prisma.issueLine.deleteMany();
   await prisma.issueSlip.deleteMany();
+  await prisma.studentUniformPlanLine.deleteMany();
+  await prisma.studentUniformPlan.deleteMany();
   await prisma.stockLedgerEntry.deleteMany();
   await prisma.stockBalance.deleteMany();
   await prisma.kitLine.deleteMany();

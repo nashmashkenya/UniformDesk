@@ -39,25 +39,30 @@ export default async function DeskHomePage() {
 
   return (
     <div className="page-stack">
-      {["school_admin", "storekeeper"].includes(user.role) && (
-        <IssueDeskPrefetch />
-      )}
+      <IssueDeskPrefetch />
       <section className="desk-hero animate-rise">
         <p className="text-xs font-semibold text-[var(--hero-muted)]">
-          {user.schoolName}
+          {user.schoolName} · school reporter
         </p>
         <h1 className="mt-1 text-[22px] font-semibold leading-7 sm:text-[28px] sm:leading-9">
           Good day, {user.name.split(" ")[0]}
         </h1>
         <p className="page-sub mt-1 max-w-lg">
-          UniformDesk home — issue with a signature. Stock moves only with proof.
+          Campus view — co-issue at admission, watch stock, and report issues.
+          Purchasing stays with your supplier.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 no-print">
-          <Link href="/issue" className="btn btn-hero min-h-8">
-            Issue uniforms
+        <div className="hero-cta-row mt-4 no-print">
+          <Link href="/issue" className="btn btn-hero">
+            Co-issue uniforms
           </Link>
-          <Link href="/deliveries" className="btn btn-hero-ghost min-h-8">
-            Incoming deliveries
+          <Link href="/stock" className="btn btn-hero-ghost">
+            Stock
+          </Link>
+          <Link href="/reports" className="btn btn-hero-ghost">
+            Reports
+          </Link>
+          <Link href="/incomplete" className="btn btn-hero-ghost">
+            Still to receive
           </Link>
         </div>
       </section>

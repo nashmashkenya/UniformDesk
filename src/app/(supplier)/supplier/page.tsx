@@ -36,15 +36,18 @@ export default async function SupplierHomePage() {
           Multi-school supply
         </h1>
         <p className="page-sub mt-1 max-w-lg">
-          Portfolio view across linked schools — orders, deliveries, and
-          invoices. SKUs must match school catalog items for receive-to-stock.
+          Supply linked schools, then co-issue uniforms with school staff during
+          admission. SKUs must match for receive-to-stock.
         </p>
-        <div className="mt-4 flex flex-wrap gap-2 no-print">
-          <Link href="/supplier/schools" className="btn btn-hero min-h-8">
-            Schools portfolio
+        <div className="hero-cta-row mt-4 no-print">
+          <Link href="/supplier/issue" className="btn btn-hero">
+            Co-issue desk
           </Link>
-          <Link href="/supplier/deliveries" className="btn btn-hero-ghost min-h-8">
-            New delivery
+          <Link href="/supplier/reports" className="btn btn-hero-ghost">
+            Reports
+          </Link>
+          <Link href="/supplier/schools" className="btn btn-hero-ghost">
+            Schools
           </Link>
         </div>
       </section>

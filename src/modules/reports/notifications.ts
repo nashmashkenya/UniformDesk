@@ -27,42 +27,26 @@ export async function listSchoolNotifications(
   const threshold = opts?.threshold ?? LOW_STOCK_THRESHOLD;
   const take = opts?.take ?? 12;
 
-  const [lowStockCount, lowStockSample, invoices, deliveries, orders] =
-    await Promise.all([
-      prisma.stockBalance.count({
-        where: { schoolId, qtyOnHand: { lte: threshold } },
-      }),
-      prisma.stockBalance.findMany({
-        where: { schoolId, qtyOnHand: { lte: threshold } },
-        include: { item: { select: { name: true, sku: true } } },
-        orderBy: { qtyOnHand: "asc" },
-        take: 3,
-      }),
-      prisma.invoice.findMany({
-        where: { schoolId, status: "issued" },
-        include: { supplier: { select: { name: true, brandName: true } } },
-        orderBy: { issuedAt: "asc" },
-        take,
-      }),
-      prisma.delivery.findMany({
-        where: {
-          schoolId,
-          status: { in: ["packed", "in_transit"] },
-        },
-        include: { supplier: { select: { name: true, brandName: true } } },
-        orderBy: { createdAt: "asc" },
-        take,
-      }),
-      prisma.supplyOrder.findMany({
-        where: {
-          schoolId,
-          status: { in: ["draft", "confirmed"] },
-        },
-        include: { supplier: { select: { name: true, brandName: true } } },
-        orderBy: { createdAt: "asc" },
-        take,
-      }),
-    ]);
+  const [lowStockCount, lowStockSample, deliveries] = await Promise.all([
+    prisma.stockBalance.count({
+      where: { schoolId, qtyOnHand: { lte: threshold } },
+    }),
+    prisma.stockBalance.findMany({
+      where: { schoolId, qtyOnHand: { lte: threshold } },
+      include: { item: { select: { name: true, sku: true } } },
+      orderBy: { qtyOnHand: "asc" },
+      take: 3,
+    }),
+    prisma.delivery.findMany({
+      where: {
+        schoolId,
+        status: { in: ["packed", "in_transit"] },
+      },
+      include: { supplier: { select: { name: true, brandName: true } } },
+      orderBy: { createdAt: "asc" },
+      take,
+    }),
+  ]);
 
   const notices: DeskNotice[] = [];
 
@@ -78,19 +62,7 @@ export async function listSchoolNotifications(
       detail: sample
         ? `${sample}${lowStockCount > 3 ? " · …" : ""}`
         : `At or below ${threshold} on hand`,
-      href: "/reorder",
-    });
-  }
-
-  for (const inv of invoices) {
-    const supplier = inv.supplier.brandName || inv.supplier.name;
-    notices.push({
-      id: `invoice:${inv.id}`,
-      kind: "unpaid_invoice",
-      severity: "warn",
-      title: `Unpaid ${inv.invoiceNo}`,
-      detail: `${supplier} · ${formatMoney(inv.amountCents)}`,
-      href: `/invoices/${inv.id}`,
+      href: "/stock",
     });
   }
 
@@ -103,18 +75,6 @@ export async function listSchoolNotifications(
       title: `Receive ${d.deliveryNo}`,
       detail: `${supplier} · ${d.status.replaceAll("_", " ")}`,
       href: `/deliveries/${d.id}`,
-    });
-  }
-
-  for (const o of orders) {
-    const supplier = o.supplier.brandName || o.supplier.name;
-    notices.push({
-      id: `order:${o.id}`,
-      kind: "open_order",
-      severity: "info",
-      title: `Open order ${o.orderNo}`,
-      detail: `${supplier} · ${o.status}`,
-      href: `/orders/${o.id}`,
     });
   }
 

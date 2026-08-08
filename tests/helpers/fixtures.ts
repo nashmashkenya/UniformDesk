@@ -23,7 +23,7 @@ export async function seedSchoolDesk(opts?: {
       email: `store-${school.id}@test.school`,
       name: "Test Storekeeper",
       passwordHash,
-      role: "storekeeper",
+      role: "school_reporter",
     },
   });
 
@@ -82,6 +82,16 @@ export async function seedSupplyChain() {
     },
   });
 
+  const supplierStaff = await prisma.user.create({
+    data: {
+      supplierId: supplier.id,
+      email: `staff-${supplier.id}@test.co`,
+      name: "Supplier Staff",
+      passwordHash: await bcrypt.hash("desk1234", 4),
+      role: "supplier_staff",
+    },
+  });
+
   const product = await prisma.supplierProduct.create({
     data: {
       supplierId: supplier.id,
@@ -93,5 +103,5 @@ export async function seedSupplyChain() {
     },
   });
 
-  return { ...desk, supplier, supplierUser, product };
+  return { ...desk, supplier, supplierUser, supplierStaff, product };
 }

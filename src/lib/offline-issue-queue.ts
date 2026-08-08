@@ -2,8 +2,10 @@ import { openOfflineDb, STORE_QUEUE, txDone } from "@/lib/offline-db";
 
 export type QueuedIssuePayload = {
   studentId: string;
-  acknowledgmentName: string;
-  acknowledgmentSignature: string;
+  schoolId?: string;
+  kitId?: string;
+  paymentMethod: "cash" | "bank" | "mpesa" | "other";
+  paymentReference?: string;
   lines: {
     itemId: string;
     sizeLabel: string;
@@ -39,7 +41,8 @@ export async function listQueuedIssues() {
   const req = tx.objectStore(STORE_QUEUE).getAll();
   const rows = await new Promise<QueuedIssue[]>((resolve, reject) => {
     req.onsuccess = () => resolve((req.result as QueuedIssue[]) ?? []);
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB read failed"));
+    req.onerror = () =>
+      reject(req.error ?? new Error("IndexedDB read failed"));
   });
   await txDone(tx);
   db.close();
@@ -61,7 +64,8 @@ export async function markQueuedIssueError(id: string, lastError: string) {
   const existing = await new Promise<QueuedIssue | undefined>((resolve, reject) => {
     const req = store.get(id);
     req.onsuccess = () => resolve(req.result as QueuedIssue | undefined);
-    req.onerror = () => reject(req.error ?? new Error("IndexedDB get failed"));
+    req.onerror = () =>
+      reject(req.error ?? new Error("IndexedDB get failed"));
   });
   if (existing) {
     store.put({ ...existing, lastError });

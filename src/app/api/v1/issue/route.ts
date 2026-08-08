@@ -1,16 +1,14 @@
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import { canWrite, getSessionUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { resolveIssueAccess } from "@/modules/issue/access";
 import { issueKit } from "@/modules/issue/issue";
 import { parseIssuePayload } from "@/modules/issue/issue-input";
 
 export async function POST(request: Request) {
   const user = await getSessionUser();
-  if (!user || user.tenant !== "school" || !user.schoolId) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!canWrite(user.role)) {
-    return NextResponse.json({ error: "No permission" }, { status: 403 });
   }
 
   let json: unknown;
@@ -27,30 +25,45 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid issue payload" }, { status: 400 });
   }
 
-  if (!payload.acknowledgmentSignature.startsWith("data:image")) {
-    return NextResponse.json({ error: "Signature is required" }, { status: 400 });
+  let access;
+  try {
+    access = await resolveIssueAccess(user, payload.schoolId);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No permission to issue";
+    const status =
+      message === "Unauthorized" || message.startsWith("No permission")
+        ? 403
+        : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 
   try {
     const slip = await issueKit({
-      schoolId: user.schoolId,
-      actorUserId: user.id,
+      schoolId: access.schoolId,
+      actorUserId: access.actorUserId,
       studentId: payload.studentId,
-      acknowledgmentName: payload.acknowledgmentName,
-      acknowledgmentSignature: payload.acknowledgmentSignature,
       lines: payload.lines,
+      kitId: payload.kitId,
+      paymentMethod: payload.paymentMethod,
+      paymentReference: payload.paymentReference,
     });
 
     revalidatePath("/");
     revalidatePath("/issue");
     revalidatePath("/stock");
     revalidatePath("/reports");
+    revalidatePath("/supplier/issue");
+    revalidatePath("/supplier/activity");
+    revalidatePath("/incomplete");
+    revalidatePath("/supplier/incomplete");
+    revalidatePath("/students");
 
     return NextResponse.json({
       ok: true,
       slipId: slip.id,
       slipNo: slip.slipNo,
-      publicToken: slip.publicToken,
+      mode: access.mode,
     });
   } catch (error) {
     return NextResponse.json(

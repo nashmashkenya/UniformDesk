@@ -8,7 +8,9 @@ import {
 const bodySchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  role: z.enum(["school_admin", "storekeeper", "auditor"]).optional(),
+  role: z
+    .enum(["school_reporter", "school_admin", "storekeeper", "auditor"])
+    .optional(),
 });
 
 export async function POST(request: Request) {

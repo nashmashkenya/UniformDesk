@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { AdjustStockForm } from "@/components/adjust-stock-form";
+import { PrintButton } from "@/components/print-button";
+import { ReportPrintBanner } from "@/components/report-print-banner";
 import { canWrite, requireSchoolUser } from "@/lib/auth";
 import { recentLedger } from "@/modules/inventory/adjust";
 import { listBalances } from "@/modules/inventory/receive";
@@ -19,168 +21,207 @@ export default async function StockPage() {
     recentLedger(user.schoolId, 25),
   ]);
 
+  const lowCount = balances.filter((row) => row.qtyOnHand <= 5).length;
+
   return (
     <div className="page-stack">
-      <header className="page-header animate-rise">
+      <header className="page-header animate-rise no-print">
         <div className="page-header-main">
           <h1 className="page-title">Stock balances</h1>
           <p className="page-sub">
-            Live on-hand quantities. Adjustments require a reason and post to the
-            ledger.
+            On-hand quantities, stock take adjustments, and the recent ledger.
+            Print a standard stock sheet for desk records.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {writable && (
-            <Link href="/reorder" className="btn btn-secondary min-h-8">
-              Reorder low stock
+            <Link href="/receive" className="btn btn-secondary min-h-8">
+              Receive stock
             </Link>
           )}
+          <Link href="/reports" className="btn btn-secondary min-h-8">
+            Reports
+          </Link>
           <span className="chip">{balances.length} lines</span>
+          {lowCount > 0 && (
+            <span className="chip chip-warn">{lowCount} low</span>
+          )}
+          <PrintButton label="Print stock" />
         </div>
       </header>
 
       {writable && items.length > 0 && (
-        <section className="card">
+        <section className="card no-print">
           <div className="card-header">
             <div>
-              <h2 className="card-title">Adjust stock</h2>
+              <h2 className="card-title">Stock take / adjust</h2>
               <p className="card-subtitle">
-                Count corrections, damage, or found stock
+                Post count corrections with a clear audit reason
               </p>
             </div>
           </div>
           <div className="card-body">
-            <AdjustStockForm items={items} />
+            <AdjustStockForm
+              items={items}
+              balances={balances.map((b) => ({
+                itemId: b.itemId,
+                sizeLabel: b.sizeLabel,
+                qtyOnHand: b.qtyOnHand,
+              }))}
+            />
           </div>
         </section>
       )}
 
-      <section className="section sm:hidden">
-        <div className="section-label">Balances</div>
-        <div className="grid gap-3">
-          {balances.map((row) => (
-            <div
-              key={row.id}
-              className={`card card-quiet card-accent p-3.5 ${
-                row.qtyOnHand <= 5
-                  ? "border-[color-mix(in_srgb,var(--warn)_40%,var(--line))]"
-                  : ""
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">{row.item.name}</div>
-                  <div className="mt-0.5 text-xs text-[var(--muted)]">
-                    {row.item.sku} · Size {row.sizeLabel}
-                  </div>
-                </div>
-                <div
-                  className={`stat-value text-[22px] ${
-                    row.qtyOnHand <= 5
-                      ? "text-[var(--warn)]"
-                      : "text-[var(--accent)]"
-                  }`}
-                >
-                  {row.qtyOnHand}
-                </div>
-              </div>
-              {row.qtyOnHand <= 5 && (
-                <span className="chip chip-warn mt-3">Low stock</span>
-              )}
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="print-report print-sheet print-doc">
+        <ReportPrintBanner
+          title="Stock on hand"
+          subtitle={`${user.schoolName ?? "School"} · ${balances.length} balance lines`}
+        />
 
-      <section className="card hidden sm:block">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">On hand</h2>
-            <p className="card-subtitle">Item, size, and quantity</p>
-          </div>
-        </div>
-        <div className="card-body-flush table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>SKU</th>
-                <th>Size</th>
-                <th>On hand</th>
-              </tr>
-            </thead>
-            <tbody>
-              {balances.map((row) => (
-                <tr key={row.id}>
-                  <td className="font-medium">{row.item.name}</td>
-                  <td className="text-[var(--muted)]">{row.item.sku}</td>
-                  <td>{row.sizeLabel}</td>
-                  <td
-                    className={`font-semibold ${
-                      row.qtyOnHand <= 5 ? "text-[var(--warn)]" : ""
+        <section className="section sm:hidden print:hidden">
+          <div className="section-label">Balances</div>
+          <div className="grid gap-3">
+            {balances.map((row) => (
+              <div
+                key={row.id}
+                className={`card card-quiet card-accent p-3.5 ${
+                  row.qtyOnHand <= 5
+                    ? "border-[color-mix(in_srgb,var(--warn)_40%,var(--line))]"
+                    : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-semibold">{row.item.name}</div>
+                    <div className="mt-0.5 text-xs text-[var(--muted)]">
+                      {row.item.sku} · Size {row.sizeLabel}
+                    </div>
+                  </div>
+                  <div
+                    className={`stat-value text-[22px] ${
+                      row.qtyOnHand <= 5
+                        ? "text-[var(--warn)]"
+                        : "text-[var(--accent)]"
                     }`}
                   >
                     {row.qtyOnHand}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card">
-        <div className="card-header">
-          <div>
-            <h2 className="card-title">Recent ledger</h2>
-            <p className="card-subtitle">Receive, issue, void, adjust, shortage</p>
+                  </div>
+                </div>
+                {row.qtyOnHand <= 5 && (
+                  <span className="chip chip-warn mt-3">Low stock</span>
+                )}
+              </div>
+            ))}
+            {!balances.length && (
+              <p className="text-sm text-[var(--muted)]">No balances yet.</p>
+            )}
           </div>
-        </div>
-        <div className="card-body overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>When</th>
-                <th>Item</th>
-                <th>Reason</th>
-                <th>Delta</th>
-                <th>By</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ledger.map((row) => (
-                <tr key={row.id}>
-                  <td className="whitespace-nowrap text-xs text-[var(--muted)]">
-                    {format(row.createdAt, "dd MMM HH:mm")}
-                  </td>
-                  <td>
-                    {row.item.name}{" "}
-                    <span className="text-[var(--muted)]">/{row.sizeLabel}</span>
-                  </td>
-                  <td className="capitalize">{row.reason}</td>
-                  <td
-                    className={
-                      row.qtyDelta < 0
-                        ? "font-semibold text-[var(--warn)]"
-                        : "font-semibold text-[var(--ok)]"
-                    }
-                  >
-                    {row.qtyDelta > 0 ? `+${row.qtyDelta}` : row.qtyDelta}
-                  </td>
-                  <td className="text-[var(--muted)]">
-                    {row.actor?.name ?? "—"}
-                  </td>
+        </section>
+
+        <section className="card hidden sm:block print:block">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title">On hand</h2>
+              <p className="card-subtitle">Item, SKU, size, and quantity</p>
+            </div>
+          </div>
+          <div className="card-body-flush table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>SKU</th>
+                  <th>Size</th>
+                  <th className="text-right">On hand</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {!ledger.length && (
-            <p className="px-3.5 py-6 text-sm text-[var(--muted)]">
-              No ledger activity yet.
-            </p>
-          )}
-        </div>
-      </section>
+              </thead>
+              <tbody>
+                {balances.map((row) => (
+                  <tr key={row.id}>
+                    <td className="font-medium">{row.item.name}</td>
+                    <td className="text-[var(--muted)]">{row.item.sku}</td>
+                    <td>{row.sizeLabel}</td>
+                    <td
+                      className={`text-right font-semibold tabular-nums ${
+                        row.qtyOnHand <= 5 ? "text-[var(--warn)]" : ""
+                      }`}
+                    >
+                      {row.qtyOnHand}
+                    </td>
+                  </tr>
+                ))}
+                {!balances.length && (
+                  <tr>
+                    <td colSpan={4} className="text-[var(--muted)]">
+                      No balances yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title">Recent ledger</h2>
+              <p className="card-subtitle">
+                Receive, issue, void, adjust, and shortage movements
+              </p>
+            </div>
+          </div>
+          <div className="card-body-flush table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>When</th>
+                  <th>Item</th>
+                  <th>Reason</th>
+                  <th className="text-right">Delta</th>
+                  <th>By</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledger.map((row) => (
+                  <tr key={row.id}>
+                    <td className="whitespace-nowrap text-[var(--muted)]">
+                      {format(row.createdAt, "dd MMM yy HH:mm")}
+                    </td>
+                    <td>
+                      {row.item.name}{" "}
+                      <span className="text-[var(--muted)]">
+                        / {row.sizeLabel}
+                      </span>
+                    </td>
+                    <td className="capitalize">{row.reason}</td>
+                    <td
+                      className={`text-right font-semibold tabular-nums ${
+                        row.qtyDelta < 0
+                          ? "text-[var(--warn)]"
+                          : "text-[var(--ok)]"
+                      }`}
+                    >
+                      {row.qtyDelta > 0 ? `+${row.qtyDelta}` : row.qtyDelta}
+                    </td>
+                    <td className="text-[var(--muted)]">
+                      {row.actor?.name ?? "—"}
+                    </td>
+                  </tr>
+                ))}
+                {!ledger.length && (
+                  <tr>
+                    <td colSpan={5} className="text-[var(--muted)]">
+                      No ledger activity yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
     </div>
   );
 }

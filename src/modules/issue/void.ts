@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { reverseIssueOnUniformPlan } from "@/modules/issue/outstanding";
 
 export async function voidIssue(input: {
   schoolId: string;
@@ -71,6 +72,15 @@ export async function voidIssue(input: {
         },
       });
     }
+
+    await reverseIssueOnUniformPlan(tx, {
+      schoolId: input.schoolId,
+      studentId: slip.studentId,
+      lines: slip.lines.map((line) => ({
+        itemId: line.itemId,
+        qtyIssued: line.qtyIssued,
+      })),
+    });
 
     return updated;
   });

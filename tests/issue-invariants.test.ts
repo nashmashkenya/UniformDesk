@@ -2,24 +2,26 @@ import { describe, expect, it } from "vitest";
 import { prisma } from "@/lib/db";
 import { issueKit } from "@/modules/issue/issue";
 import { voidIssue } from "@/modules/issue/void";
-import { fakeSignature, seedSchoolDesk } from "./helpers/fixtures";
+import { seedSchoolDesk } from "./helpers/fixtures";
 
 describe("issue + void ledger invariants", () => {
-  it("rejects issue without a signature image", async () => {
+  it("records payment method and reference without a parent slip", async () => {
     const desk = await seedSchoolDesk();
 
-    await expect(
-      issueKit({
-        schoolId: desk.school.id,
-        actorUserId: desk.user.id,
-        studentId: desk.student.id,
-        acknowledgmentName: "Parent",
-        acknowledgmentSignature: "not-an-image",
-        lines: [
-          { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 1 },
-        ],
-      }),
-    ).rejects.toThrow(/signature/i);
+    const slip = await issueKit({
+      schoolId: desk.school.id,
+      actorUserId: desk.user.id,
+      studentId: desk.student.id,
+      paymentMethod: "mpesa",
+      paymentReference: "QK12TEST",
+      lines: [
+        { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 1 },
+      ],
+    });
+
+    expect(slip.paymentMethod).toBe("mpesa");
+    expect(slip.paymentReference).toBe("QK12TEST");
+    expect(slip.acknowledgmentName).toBe("Desk issue");
   });
 
   it("decrements stock and appends an issue ledger entry", async () => {
@@ -29,8 +31,7 @@ describe("issue + void ledger invariants", () => {
       schoolId: desk.school.id,
       actorUserId: desk.user.id,
       studentId: desk.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [
         { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 3 },
       ],
@@ -67,8 +68,7 @@ describe("issue + void ledger invariants", () => {
       schoolId: desk.school.id,
       actorUserId: desk.user.id,
       studentId: desk.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [
         { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 5 },
       ],
@@ -102,8 +102,7 @@ describe("issue + void ledger invariants", () => {
       schoolId: desk.school.id,
       actorUserId: desk.user.id,
       studentId: desk.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [
         { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 4 },
       ],
@@ -151,8 +150,7 @@ describe("issue + void ledger invariants", () => {
       schoolId: a.school.id,
       actorUserId: a.user.id,
       studentId: a.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [{ itemId: a.item.id, sizeLabel: "M", qtyRequested: 1 }],
     });
 

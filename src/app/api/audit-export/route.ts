@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionUser } from "@/lib/auth";
+import { canWrite, getSessionUser } from "@/lib/auth";
 import {
   auditExportRows,
   slipsToAuditCsv,
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (!user || user.tenant !== "school" || !user.schoolId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (user.role !== "school_admin" && user.role !== "auditor") {
+  if (!canWrite(user.role) && user.role !== "auditor") {
     return NextResponse.json({ error: "No permission" }, { status: 403 });
   }
 

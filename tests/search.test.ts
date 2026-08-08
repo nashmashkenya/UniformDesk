@@ -6,7 +6,6 @@ import {
 } from "@/modules/reports/search";
 import { createDelivery } from "@/modules/supply/deliveries";
 import {
-  fakeSignature,
   seedSchoolDesk,
   seedSupplyChain,
 } from "./helpers/fixtures";
@@ -19,8 +18,7 @@ describe("desk search", () => {
       schoolId: desk.school.id,
       actorUserId: desk.user.id,
       studentId: desk.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [
         { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 1 },
       ],

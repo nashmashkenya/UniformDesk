@@ -5,7 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "UniformDesk",
-  description: "Supplier supply · School issue · Proof for every student",
+  description:
+    "Supplier-led uniforms — stock, co-issue at admission, and campus reports",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  /* Allow pinch-zoom for accessibility; iOS field zoom is handled via 16px inputs */
   viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#faf9f8" },

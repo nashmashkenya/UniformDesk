@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { IssueDeskSnapshot } from "@/lib/offline-issue-snapshot";
+import { loadStillToReceiveByStudent } from "@/modules/issue/outstanding";
 
 export async function loadIssueDeskData(schoolId: string) {
   const [school, students, kits, items, balances] = await Promise.all([
@@ -37,10 +38,27 @@ export async function loadIssueDeskData(schoolId: string) {
     }),
   ]);
 
+  const stillMap = await loadStillToReceiveByStudent(
+    schoolId,
+    students.map((s) => s.id),
+  );
+
   const snapshot: Omit<IssueDeskSnapshot, "savedAt"> = {
     schoolId,
     schoolName: school.name,
-    students,
+    students: students.map((s) => {
+      const still = stillMap.get(s.id);
+      return {
+        ...s,
+        stillToReceive: still
+          ? {
+              label: still.label,
+              totalOwed: still.totalOwed,
+              lines: still.lines,
+            }
+          : null,
+      };
+    }),
     kits: kits.map((kit) => ({
       id: kit.id,
       name: kit.name,

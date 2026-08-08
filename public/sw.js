@@ -1,5 +1,5 @@
 /* UniformDesk service worker — app shell cache for flaky school networks */
-const CACHE = "ud-shell-v2";
+const CACHE = "ud-shell-v3";
 const PRECACHE = [
   "/",
   "/issue",

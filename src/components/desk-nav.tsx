@@ -1,10 +1,12 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { DeskSearch } from "@/components/desk-search";
+import { NavIcons } from "@/components/nav-icons";
 import { ThemeMenu } from "@/components/theme-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { SessionUser } from "@/lib/auth";
@@ -16,75 +18,61 @@ type NavItem = {
   icon: () => React.ReactNode;
 };
 
+/** Campus surface: stock + issue + reports (supplier owns purchasing). */
 const primary: NavItem[] = [
-  { href: "/", label: "Desk", desc: "Today overview", icon: DeskIcon },
-  { href: "/issue", label: "Issue", desc: "Sign & release kits", icon: IssueIcon },
-  { href: "/stock", label: "Stock", desc: "Balances by size", icon: StockIcon },
-  { href: "/activity", label: "Activity", desc: "Audit timeline", icon: ActivityIcon },
+  { href: "/", label: "Home", desc: "Today overview", icon: NavIcons.desk },
+  { href: "/issue", label: "Issue", desc: "Co-issue with supplier", icon: NavIcons.issue },
+  { href: "/stock", label: "Stock", desc: "Balances by size", icon: NavIcons.stock },
+  {
+    href: "/incomplete",
+    label: "Still owed",
+    desc: "Incomplete uniforms",
+    icon: NavIcons.reports,
+  },
 ];
 
 const opsLinksAll: (NavItem & { roles?: SessionUser["role"][] })[] = [
   {
-    href: "/notifications",
-    label: "Notifications",
-    desc: "Stock, invoices, deliveries",
-    icon: BellIcon,
-  },
-  {
-    href: "/search",
-    label: "Search",
-    desc: "Slips, students, supply docs",
-    icon: SearchIcon,
-  },
-  {
     href: "/reports",
     label: "Reports",
-    desc: "Issued today & shortages",
-    icon: ReportIcon,
+    desc: "Issued & shortages",
+    icon: NavIcons.reports,
+  },
+  {
+    href: "/students",
+    label: "Students",
+    desc: "Admission roster",
+    icon: NavIcons.students,
   },
   {
     href: "/deliveries",
     label: "Deliveries",
-    desc: "Receive against supplier DN",
-    icon: DeliveryIcon,
-  },
-  { href: "/orders", label: "Orders", desc: "Supply purchase orders", icon: OrdersIcon },
-  {
-    href: "/reorder",
-    label: "Reorder",
-    desc: "Low-stock to supplier PO",
-    icon: ReorderIcon,
-  },
-  { href: "/invoices", label: "Invoices", desc: "Supplier invoices", icon: InvoiceIcon },
-  { href: "/receive", label: "Receive", desc: "Manual inbound stock", icon: ReceiveIcon },
-  { href: "/students", label: "Students", desc: "Admission roster", icon: StudentsIcon },
-  {
-    href: "/catalog",
-    label: "Catalog",
-    desc: "Items and sizes",
-    icon: CatalogIcon,
-    roles: ["school_admin"],
+    desc: "Receive supplier DN into stock",
+    icon: NavIcons.deliveries,
   },
   {
-    href: "/kits",
-    label: "Kits",
-    desc: "Issue bundles",
-    icon: KitsIcon,
-    roles: ["school_admin"],
+    href: "/receive",
+    label: "Receive",
+    desc: "Manual inbound stock",
+    icon: NavIcons.receive,
   },
   {
-    href: "/users",
-    label: "Users",
-    desc: "Desk accounts & roles",
-    icon: UsersIcon,
-    roles: ["school_admin"],
+    href: "/activity",
+    label: "Activity",
+    desc: "Issue & stock timeline",
+    icon: NavIcons.activity,
   },
   {
-    href: "/integrations",
-    label: "Integrations",
-    desc: "School Master sync & SSO",
-    icon: IntegrationsIcon,
-    roles: ["school_admin"],
+    href: "/notifications",
+    label: "Notifications",
+    desc: "Stock & inbound alerts",
+    icon: NavIcons.bell,
+  },
+  {
+    href: "/search",
+    label: "Search",
+    desc: "Students & slips",
+    icon: NavIcons.search,
   },
 ];
 
@@ -132,6 +120,15 @@ export function DeskNav({
   const noticeLabel =
     noticeCount > 99 ? "99+" : noticeCount > 0 ? String(noticeCount) : null;
 
+  useEffect(() => {
+    if (!mobileMore) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMore]);
+
   return (
     <>
       <header className="desk-topbar no-print">
@@ -177,7 +174,7 @@ export function DeskNav({
                   ops.setOpen((v) => !v);
                 }}
               >
-                <OpsIcon />
+                <NavIcons.ops />
                 <span>Ops</span>
                 <ChevronIcon open={ops.open} />
               </button>
@@ -226,7 +223,7 @@ export function DeskNav({
               }
               title="Notifications"
             >
-              <BellIcon />
+              <NavIcons.bell />
               {noticeLabel && (
                 <span className="nav-badge" aria-hidden>
                   {noticeLabel}
@@ -279,7 +276,7 @@ export function DeskNav({
                   <form action={logoutAction}>
                     <button type="submit" className="nav-menu-item w-full text-[var(--danger)]">
                       <span className="nav-menu-icon">
-                        <LogoutIcon />
+                        <NavIcons.logout />
                       </span>
                       <span className="font-semibold">Sign out</span>
                     </button>
@@ -313,15 +310,15 @@ export function DeskNav({
             className={`mobile-fab ${isActive(pathname, "/issue") ? "is-active" : ""}`}
             aria-label="Issue uniforms"
           >
-            <IssueIcon />
+            <NavIcons.issue />
           </Link>
 
           <Link
-            href="/activity"
-            className={`mobile-dock-link ${isActive(pathname, "/activity") ? "is-active" : ""}`}
+            href="/incomplete"
+            className={`mobile-dock-link ${isActive(pathname, "/incomplete") ? "is-active" : ""}`}
           >
-            <ActivityIcon />
-            <span>Activity</span>
+            <NavIcons.reports />
+            <span>Owed</span>
           </Link>
 
           <button
@@ -332,8 +329,9 @@ export function DeskNav({
                 : ""
             }`}
             onClick={() => setMobileMore(true)}
+            aria-expanded={mobileMore}
           >
-            <MoreIcon />
+            <NavIcons.more />
             <span>More</span>
           </button>
         </div>
@@ -347,15 +345,17 @@ export function DeskNav({
             aria-label="Close menu"
             onClick={() => setMobileMore(false)}
           />
-          <div className="mobile-sheet-panel animate-rise">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <div className="font-display text-lg font-bold">Menu</div>
-                <div className="text-xs text-[var(--muted)]">{user.schoolName}</div>
+          <div className="mobile-sheet-panel animate-rise" role="dialog" aria-modal="true" aria-label="Menu">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-base font-semibold">Menu</div>
+                <div className="truncate text-xs text-[var(--muted)]">
+                  {user.schoolName}
+                </div>
               </div>
               <button
                 type="button"
-                className="nav-icon-btn"
+                className="btn btn-ghost"
                 onClick={() => setMobileMore(false)}
               >
                 Close
@@ -411,306 +411,11 @@ export function DeskNav({
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
+    <ChevronDown
+      size={12}
+      strokeWidth={2}
       aria-hidden
       className={`transition ${open ? "rotate-180" : ""}`}
-    >
-      <path
-        d="M6 9l6 6 6-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function DeskIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function IssueIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 7h11M8 12h11M8 17h7M4 7h.01M4 12h.01M4 17h.01"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function StockIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 8.5 12 4l8 4.5v7L12 20l-8-4.5v-7Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 12v8M4 8.5l8 3.5 8-3.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ReportIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M5 19V9M10 19V5M15 19v-7M20 19V8"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ActivityIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 6h16M4 12h10M4 18h13"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="18" cy="12" r="2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
-      <path
-        d="M16 16l4 4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 9a6 6 0 1 1 12 0c0 3.5 1.5 5 2 6H4c.5-1 2-2.5 2-6Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 19a2 2 0 0 0 4 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function OpsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function ReceiveIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function DeliveryIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 7h11v10H3V7Zm11 3h4l3 3v4h-7v-7ZM7 19a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm10 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function OrdersIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 4h10l1 16H6L7 4Zm3 4h4M9 12h6M9 16h4"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ReorderIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 7h11l2 3v7H4V7Zm13 3h3v7h-3M8 20a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm8 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14 4v3m0 0 1.5-1.5M14 7l-1.5-1.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function InvoiceIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 3h10v18l-2.5-1.5L12 21l-2.5-1.5L7 21V3Zm3 5h4M10 11h4M10 15h2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function StudentsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M16 11a3 3 0 1 0-6 0 3 3 0 0 0 6 0ZM4 19c.8-2.7 3.2-4 6-4h0c2.8 0 5.2 1.3 6 4M17 8a2.5 2.5 0 1 0 0-5M20.5 19c-.4-1.8-1.7-3-3.5-3.5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function CatalogIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v14.5A1.5 1.5 0 0 1 18.5 20H6.5A2.5 2.5 0 0 1 4 17.5v-11Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M8 8h8M8 12h8M8 16h5"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function KitsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 8h16v11H4V8Zm3-4h10l1 4H6l1-4Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3.5 19c.7-2.6 2.9-4 5.5-4s4.8 1.4 5.5 4M14 15c1.8.2 3.4 1.2 4 3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function IntegrationsIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M8 7h3v3H8V7Zm5 7h3v3h-3v-3ZM7 14a3 3 0 0 1 3-3h1v2H10a1 1 0 0 0-1 1v1H7v-1Zm10-4h-2V9h1a1 1 0 0 0 1-1V7h2v1a3 3 0 0 1-3 3h-1V9h1Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MoreIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="6" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="18" cy="12" r="1.6" fill="currentColor" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M10 7V6a2 2 0 0 1 2-2h7v16h-7a2 2 0 0 1-2-2v-1M3 12h11m0 0-3-3m3 3-3 3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    />
   );
 }

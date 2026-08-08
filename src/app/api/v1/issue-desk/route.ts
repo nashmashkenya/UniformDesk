@@ -1,19 +1,35 @@
 import { NextResponse } from "next/server";
-import { canWrite, getSessionUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { resolveIssueAccess } from "@/modules/issue/access";
 import {
   loadIssueDeskData,
   toIssueDeskSnapshot,
 } from "@/modules/issue/issue-desk";
 
-export async function GET() {
+export async function GET(request: Request) {
   const user = await getSessionUser();
-  if (!user || user.tenant !== "school" || !user.schoolId) {
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!canWrite(user.role)) {
-    return NextResponse.json({ error: "No permission" }, { status: 403 });
+
+  const schoolIdParam = new URL(request.url).searchParams.get("schoolId");
+
+  let access;
+  try {
+    access = await resolveIssueAccess(user, schoolIdParam);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "No permission";
+    const status =
+      message === "Unauthorized" || message.startsWith("No permission")
+        ? 403
+        : 400;
+    return NextResponse.json({ error: message }, { status });
   }
 
-  const data = await loadIssueDeskData(user.schoolId);
-  return NextResponse.json(toIssueDeskSnapshot(data));
+  const data = await loadIssueDeskData(access.schoolId);
+  return NextResponse.json({
+    ...toIssueDeskSnapshot(data),
+    mode: access.mode,
+  });
 }

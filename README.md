@@ -1,8 +1,10 @@
 # UniformDesk
 
-Supplier supply · School issue · Proof for every student.
+**Supplier-owned** uniforms platform: stock · co-issue at admission · proof & reports.
 
-Phases 1–11: … → activity → low-stock reorder → desk search.
+Schools no longer purchase through the desk — campus **school reporters** co-issue with supplier staff and view issue reports. The supplier runs the server and the supply catalog.
+
+**Docs:** [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (day-to-day ops + printing) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/) (system overview PPT)
 
 ## Stack
 
@@ -24,29 +26,36 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### Roles
+
+| Role | Who | Access |
+|------|-----|--------|
+| `supplier_admin` | Supplier HQ | Catalog, schools, supply, co-issue, branding |
+| `supplier_staff` | Supplier ops | Pack/dispatch, invoices, co-issue |
+| `school_reporter` | School campus | Co-issue, stock, receive DN, reports |
+
 ### Demo logins
 
 | Role | Email | Password |
 |------|-------|----------|
-| Storekeeper | `store@greenfield.school` | `desk1234` |
-| School admin | `admin@greenfield.school` | `desk1234` |
-| Auditor | `audit@greenfield.school` | `desk1234` |
-| Riverside storekeeper | `store@riverside.school` | `desk1234` |
 | Supplier admin | `supply@uniformdesk.co` | `desk1234` |
 | Supplier staff | `staff@uniformdesk.co` | `desk1234` |
+| School reporter (GFS) | `report@greenfield.school` | `desk1234` |
+| School reporter (RVA) | `report@riverside.school` | `desk1234` |
 
 ## Phase 1 routes (school)
 
 - `/` — desk home
-- `/issue` — issue desk + signature
+- `/issue` — issue desk (payment method + reference)
 - `/receive` — manual receive stock
-- `/stock` — balances
+- `/stock` — balances + stock take (**Print stock**)
 - `/students` — roster
 - `/catalog` — items & sizes (school admin)
 - `/kits` — issue kits (school admin)
 - `/users` — desk accounts & roles (school admin)
-- `/reports` — issued today + shortages
-- `/slips/[id]` — printable proof / void
+- `/reports` — issued today + shortages (**Print report**)
+- `/incomplete` — still to receive (**Print list**)
+- `/slips/[id]` — issue record / void (browser printable)
 
 ## Phase 2 routes
 
@@ -147,6 +156,7 @@ Vitest suite under `tests/` covers the spine invariants:
 - Delivery detail — printable delivery note (supplier + school) with sign-off lines
 - Invoice detail — printable invoice sheet (supplier + school)
 - Browser print hides nav, payments, and receive actions (`Print DN` / `Print invoice`)
+- Reports & lists also print (Phase 23): school `/reports`, `/incomplete`, `/stock`; supplier `/supplier/reports`, `/supplier/incomplete`
 
 ## Phase 13 (supplier search)
 
@@ -179,5 +189,45 @@ Vitest suite under `tests/` covers the spine invariants:
 - Edge middleware — JWT session gate (public: login, proof, offline, School Master / M-Pesa APIs)
 - GitHub Actions CI — `prisma migrate deploy` + `npm test` + `npm run build`
 - [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) — Postgres cutover + go-live checklist
+
+## Phase 18 (supplier co-issue)
+
+- `/supplier/issue` — linked-school admission issue desk (supplier admin/staff)
+- Uses school stock + roster; slip stays on the school; issuer recorded as supplier user
+- New student key-in (admission no, name, class) at co-issue desk
+- `/supplier/slips/[id]` — view/print slip after co-issue
+- Supplier activity includes co-issue events for slips issued by the supplier team
+
+## Phase 19 (supplier-first roles)
+
+- Active roles: `supplier_admin`, `supplier_staff`, `school_reporter`
+- School desk simplified to **stock + issue + reports** (plus students / receive DN)
+- School purchase routes (orders, reorder, invoices, catalog admin) retired → redirect home
+- Legacy school roles migrated to `school_reporter`
+
+## Phase 20 (still to receive)
+
+- Incomplete admission kits tracked as a simple “still to receive” list
+- Opened when a kit/items are issued and some quantities are short or not yet given
+- `/incomplete` (school) and `/supplier/incomplete` — queue with **Issue what’s left**
+- Issue desk shows owed items per student; void puts quantities back on the list
+
+## Phase 21 (simple desk payment)
+
+- Issue records **payment method + reference only** (no amount, no live rails)
+- Parent slip / signature **not required** — issue completes with an on-screen confirmation
+- Internal issue record kept for stock, still-to-receive, and staff audit
+
+## Phase 22 (supplier reports)
+
+- `/supplier/reports` — issued today and **read-only** campus stock for linked schools
+- Links through to Still owed; school reporters keep doing stock take / adjust
+- School reports/stock copy clarified (no retired reorder CTA)
+
+## Phase 23 (printable reports + desk guide)
+
+- **Print report / Print list / Print stock** on school and supplier report surfaces
+- Print CSS: hide nav/pickers/CTAs; show report title banner; long lists can page-break
+- [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) — roles, issue/stock/reports, print packs
 
 Sample student CSV: [`/sample-students.csv`](./public/sample-students.csv)

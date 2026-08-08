@@ -8,8 +8,13 @@ datasource db {
 }
 
 enum Role {
+  /// School campus contact — co-issue, stock, reports (supplier-owned product)
+  school_reporter
+  /// @deprecated Use school_reporter
   school_admin
+  /// @deprecated Use school_reporter
   storekeeper
+  /// @deprecated Use school_reporter
   auditor
   supplier_admin
   supplier_staff
@@ -26,6 +31,12 @@ enum LedgerReason {
 enum IssueStatus {
   issued
   voided
+}
+
+/// Admission kit progress — open until every promised item is received
+enum UniformPlanStatus {
+  open
+  complete
 }
 
 enum OrderStatus {
@@ -85,6 +96,7 @@ model School {
   stockLedgerEntries StockLedgerEntry[]
   inboundReceipts    InboundReceipt[]
   issueSlips         IssueSlip[]
+  uniformPlans       StudentUniformPlan[]
   supplierLinks      SupplierSchool[]
   orders             SupplyOrder[]
   deliveries         Delivery[]
@@ -158,11 +170,45 @@ model Student {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
-  school     School      @relation(fields: [schoolId], references: [id])
-  issueSlips IssueSlip[]
+  school       School               @relation(fields: [schoolId], references: [id])
+  issueSlips   IssueSlip[]
+  uniformPlans StudentUniformPlan[]
 
   @@unique([schoolId, admissionNo])
   @@index([schoolId, fullName])
+}
+
+/// What a student should still receive for their admission uniform set
+model StudentUniformPlan {
+  id           String            @id @default(cuid())
+  schoolId     String
+  studentId    String
+  kitId        String?
+  label        String
+  academicYear String?
+  status       UniformPlanStatus @default(open)
+  openedAt     DateTime          @default(now())
+  completedAt  DateTime?
+
+  school  School                   @relation(fields: [schoolId], references: [id])
+  student Student                  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lines   StudentUniformPlanLine[]
+
+  @@index([schoolId, status])
+  @@index([studentId, status])
+}
+
+model StudentUniformPlanLine {
+  id          String @id @default(cuid())
+  planId      String
+  itemId      String
+  qtyNeeded   Int
+  qtyReceived Int    @default(0)
+
+  plan StudentUniformPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  item Item               @relation(fields: [itemId], references: [id])
+
+  @@unique([planId, itemId])
 }
 
 model Item {
@@ -174,7 +220,7 @@ model Item {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  school             School             @relation(fields: [schoolId], references: [id])
+  school             School                   @relation(fields: [schoolId], references: [id])
   sizes              ItemSize[]
   kitLines           KitLine[]
   stockBalances      StockBalance[]
@@ -182,6 +228,7 @@ model Item {
   inboundLines       InboundLine[]
   issueLines         IssueLine[]
   deliveryLines      DeliveryLine[]
+  uniformPlanLines   StudentUniformPlanLine[]
 
   @@unique([schoolId, sku])
 }
@@ -291,10 +338,15 @@ model IssueSlip {
   voidedAt                DateTime?
   voidedById              String?
   voidReason              String?
-  acknowledgmentName      String
-  acknowledgmentSignature String
-  acknowledgedAt          DateTime
-  /// Unguessable token for guardian / public proof link
+  /// Kept for audit compatibility; desk issue no longer requires a parent slip/signature
+  acknowledgmentName      String      @default("Desk issue")
+  acknowledgmentSignature String      @default("")
+  acknowledgedAt          DateTime    @default(now())
+  /// Parent payment at desk — method only (no amount)
+  paymentMethod           PaymentMethod?
+  /// Receipt no., M-Pesa code, or bank ref
+  paymentReference        String?
+  /// Unguessable token (optional public proof; not required for students)
   publicToken             String      @unique
 
   school   School      @relation(fields: [schoolId], references: [id])

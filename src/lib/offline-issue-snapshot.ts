@@ -4,11 +4,23 @@ import {
   txDone,
 } from "@/lib/offline-db";
 
+export type IssueDeskStillLine = {
+  itemId: string;
+  itemName: string;
+  qtyOwed: number;
+};
+
 export type IssueDeskStudent = {
   id: string;
   admissionNo: string;
   fullName: string;
   className: string | null;
+  /** Plain-language remaining kit items, if any */
+  stillToReceive?: {
+    label: string;
+    totalOwed: number;
+    lines: IssueDeskStillLine[];
+  } | null;
 };
 
 export type IssueDeskItem = {

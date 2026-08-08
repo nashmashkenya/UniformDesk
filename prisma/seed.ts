@@ -70,33 +70,13 @@ async function main() {
 
   const passwordHash = await bcrypt.hash("desk1234", 10);
 
-  const admin = await prisma.user.create({
+  const reporter = await prisma.user.create({
     data: {
       schoolId: school.id,
-      email: "admin@greenfield.school",
-      name: "Amina Otieno",
-      passwordHash,
-      role: "school_admin",
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      schoolId: school.id,
-      email: "store@greenfield.school",
+      email: "report@greenfield.school",
       name: "John Kamau",
       passwordHash,
-      role: "storekeeper",
-    },
-  });
-
-  await prisma.user.create({
-    data: {
-      schoolId: school.id,
-      email: "audit@greenfield.school",
-      name: "Grace Wanjiku",
-      passwordHash,
-      role: "auditor",
+      role: "school_reporter",
     },
   });
 
@@ -123,10 +103,10 @@ async function main() {
   await prisma.user.create({
     data: {
       schoolId: riverside.id,
-      email: "store@riverside.school",
+      email: "report@riverside.school",
       name: "Lucy Aoko",
       passwordHash,
-      role: "storekeeper",
+      role: "school_reporter",
     },
   });
 
@@ -204,7 +184,7 @@ async function main() {
   const receipt = await prisma.inboundReceipt.create({
     data: {
       schoolId: school.id,
-      receivedById: admin.id,
+      receivedById: reporter.id,
       supplierName: "UniformDesk Supply Co.",
       note: "Opening stock",
       lines: {
@@ -235,7 +215,7 @@ async function main() {
         reason: "receive",
         refType: "inbound_receipts",
         refId: receipt.id,
-        actorUserId: admin.id,
+        actorUserId: reporter.id,
         note: "Opening stock",
       },
     });
@@ -312,11 +292,11 @@ async function main() {
   });
 
   console.log("Seed complete");
-  console.log("School:", school.name, "+ ", riverside.name);
-  console.log("School login: store@greenfield.school / desk1234");
-  console.log("Riverside login: store@riverside.school / desk1234");
-  console.log("Supplier brand: CampusKit Supply");
-  console.log("Supplier login: supply@uniformdesk.co / desk1234");
+  console.log("Schools:", school.name, "+", riverside.name);
+  console.log("Supplier admin: supply@uniformdesk.co / desk1234");
+  console.log("Supplier staff: staff@uniformdesk.co / desk1234");
+  console.log("School reporter: report@greenfield.school / desk1234");
+  console.log("School reporter: report@riverside.school / desk1234");
 }
 
 main()

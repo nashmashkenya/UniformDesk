@@ -1,12 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { SignaturePad } from "@/components/signature-pad";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { addStudentAction } from "@/app/actions/students";
 import { enqueueIssue } from "@/lib/offline-issue-queue";
 import {
   applyIssueToBalances,
+  loadIssueSnapshot,
   patchIssueSnapshotBalances,
+  saveIssueSnapshot,
   type IssueDeskBalance,
   type IssueDeskItem,
   type IssueDeskKit,
@@ -19,9 +21,12 @@ type Line = {
   qtyRequested: number;
 };
 
+type StudentMode = "new" | "existing";
+type PayMethod = "cash" | "bank" | "mpesa" | "other";
+
 export function IssueForm({
   schoolId,
-  students,
+  students: initialStudents,
   kits,
   items,
   balances: initialBalances,
@@ -33,24 +38,41 @@ export function IssueForm({
   items: IssueDeskItem[];
   balances: IssueDeskBalance[];
   cachedMode?: boolean;
+  /** @deprecated Parent slip not required */
+  slipPathPrefix?: string;
 }) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(false);
+  const [admitPending, setAdmitPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [queuedNote, setQueuedNote] = useState<string | null>(null);
+  const [successNote, setSuccessNote] = useState<string | null>(null);
+  const [mode, setMode] = useState<StudentMode>("new");
   const [query, setQuery] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [students, setStudents] = useState(initialStudents);
+  const [admissionNo, setAdmissionNo] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [className, setClassName] = useState("");
   const [kitId, setKitId] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
-  const [signature, setSignature] = useState("");
-  const [ackName, setAckName] = useState("");
-  const [signatureKey, setSignatureKey] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
+  const [paymentReference, setPaymentReference] = useState("");
   const [balances, setBalances] = useState(initialBalances);
 
   useEffect(() => {
     setBalances(initialBalances);
   }, [initialBalances]);
+
+  useEffect(() => {
+    setStudents((prev) => {
+      const byId = new Map(prev.map((s) => [s.id, s]));
+      for (const s of initialStudents) byId.set(s.id, s);
+      return [...byId.values()];
+    });
+  }, [initialStudents]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -132,30 +154,136 @@ export function IssueForm({
     setStudentId("");
     setKitId("");
     setLines([]);
-    setSignature("");
-    setAckName("");
+    setPaymentMethod("cash");
+    setPaymentReference("");
     setQuery("");
-    setSignatureKey((k) => k + 1);
+    setAdmissionNo("");
+    setFullName("");
+    setClassName("");
+    setMode("new");
+  }
+
+  function selectStudent(student: IssueDeskStudent) {
+    setStudentId(student.id);
+    setError(null);
+    setSuccessNote(null);
+  }
+
+  function fillWhatsLeft() {
+    const still = selectedStudent?.stillToReceive;
+    if (!still?.lines.length) return;
+    setLines(
+      still.lines.map((owed) => {
+        const item = items.find((i) => i.id === owed.itemId);
+        const preferred =
+          item?.sizes.find((s) => stockFor(owed.itemId, s.sizeLabel) > 0)
+            ?.sizeLabel ??
+          item?.sizes[0]?.sizeLabel ??
+          "M";
+        return {
+          itemId: owed.itemId,
+          sizeLabel: preferred,
+          qtyRequested: owed.qtyOwed,
+        };
+      }),
+    );
+    setError(null);
+  }
+
+  async function rememberStudentOffline(student: IssueDeskStudent) {
+    try {
+      const snap = await loadIssueSnapshot(schoolId);
+      if (!snap) return;
+      if (snap.students.some((s) => s.id === student.id)) return;
+      await saveIssueSnapshot({
+        ...snap,
+        students: [student, ...snap.students],
+      });
+    } catch {
+      // offline cache is best-effort
+    }
+  }
+
+  async function onAdmit() {
+    setError(null);
+    setQueuedNote(null);
+
+    if (!navigator.onLine || cachedMode) {
+      setError("New student entry needs a connection. Use Find student offline.");
+      return;
+    }
+
+    const adm = admissionNo.trim();
+    const name = fullName.trim();
+    if (!adm || !name) {
+      setError("Admission number and full name are required");
+      return;
+    }
+
+    setAdmitPending(true);
+    try {
+      const formData = new FormData();
+      formData.set("admissionNo", adm);
+      formData.set("fullName", name);
+      formData.set("schoolId", schoolId);
+      if (className.trim()) formData.set("className", className.trim());
+
+      const result = await addStudentAction({}, formData);
+      if (result.error || !result.studentId) {
+        const existing = students.find(
+          (s) => s.admissionNo.toUpperCase() === adm.toUpperCase(),
+        );
+        if (existing) {
+          selectStudent(existing);
+          setError(null);
+          return;
+        }
+        setError(result.error || "Could not save student");
+        return;
+      }
+
+      const student: IssueDeskStudent = {
+        id: result.studentId,
+        admissionNo: result.admissionNo || adm.toUpperCase(),
+        fullName: result.fullName || name,
+        className: result.className ?? (className.trim() || null),
+      };
+      setStudents((prev) =>
+        prev.some((s) => s.id === student.id) ? prev : [student, ...prev],
+      );
+      selectStudent(student);
+      void rememberStudentOffline(student);
+      startTransition(() => router.refresh());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save student");
+    } finally {
+      setAdmitPending(false);
+    }
   }
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     setQueuedNote(null);
+    setSuccessNote(null);
 
-    if (!studentId || !lines.length || !signature || !ackName.trim()) {
-      setError("Student, lines, name, and signature are required");
+    if (!studentId || !lines.length || !paymentMethod) {
+      setError("Student, items, and payment method are required");
       return;
     }
 
+    const studentLabel = selectedStudent
+      ? `${selectedStudent.fullName} (${selectedStudent.admissionNo})`
+      : "Student";
+
     const payload = {
       studentId,
-      acknowledgmentName: ackName.trim(),
-      acknowledgmentSignature: signature,
+      schoolId,
+      kitId: kitId || undefined,
+      paymentMethod,
+      paymentReference: paymentReference.trim() || undefined,
       lines,
-      studentLabel: selectedStudent
-        ? `${selectedStudent.fullName} (${selectedStudent.admissionNo})`
-        : undefined,
+      studentLabel,
     };
 
     setPending(true);
@@ -196,9 +324,14 @@ export function IssueForm({
         throw new Error(data.error || "Could not issue kit");
       }
 
-      if (!data.slipId) throw new Error("Issue saved but slip id missing");
-      router.push(`/slips/${data.slipId}`);
-      router.refresh();
+      const payLabel = `${paymentMethod}${
+        paymentReference.trim() ? ` · ${paymentReference.trim()}` : ""
+      }`;
+      resetForm();
+      setSuccessNote(
+        `Issued to ${studentLabel}. No parent slip needed — payment: ${payLabel}.`,
+      );
+      startTransition(() => router.refresh());
     } catch (err) {
       const networkFail =
         !navigator.onLine ||
@@ -225,7 +358,7 @@ export function IssueForm({
     }
   }
 
-  const canSubmit = Boolean(studentId && lines.length && signature && !pending);
+  const canSubmit = Boolean(studentId && lines.length && paymentMethod && !pending);
 
   return (
     <form onSubmit={onSubmit} className="page-stack pb-2">
@@ -233,63 +366,214 @@ export function IssueForm({
         <div className="step-card-head">
           <span className="step-index">1</span>
           <div>
-            <h2 className="card-title">Find student</h2>
-            <p className="card-subtitle">Search by admission number or name</p>
+            <h2 className="card-title">Student</h2>
+            <p className="card-subtitle">
+              New admission at the uniform desk, or find an existing student
+            </p>
           </div>
         </div>
-        <div className="step-card-body">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Admission number or name"
-            inputMode="search"
-            autoComplete="off"
-            className="field"
-          />
-          <ul className="card-inset mt-3 max-h-64 overflow-y-auto !p-0">
-            {filtered.map((student) => {
-              const selected = studentId === student.id;
-              return (
-                <li
-                  key={student.id}
-                  className="border-b border-[var(--line)] last:border-b-0"
-                >
+        <div className="step-card-body form-stack">
+          <div className="seg-control" role="tablist" aria-label="Student mode">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "new"}
+              onClick={() => setMode("new")}
+              className={`seg-control-item ${mode === "new" ? "is-active" : ""}`}
+            >
+              New student
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={mode === "existing"}
+              onClick={() => setMode("existing")}
+              className={`seg-control-item ${mode === "existing" ? "is-active" : ""}`}
+            >
+              Find student
+            </button>
+          </div>
+
+          {mode === "new" ? (
+            <div className="form-stack">
+              <div className="form-grid cols-3">
+                <div className="field-group">
+                  <label className="field-label" htmlFor="issue-admission">
+                    Admission no
+                  </label>
+                  <input
+                    id="issue-admission"
+                    value={admissionNo}
+                    onChange={(e) => setAdmissionNo(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void onAdmit();
+                      }
+                    }}
+                    placeholder="e.g. GF-2026-0142"
+                    autoComplete="off"
+                    className="field"
+                  />
+                </div>
+                <div className="field-group">
+                  <label className="field-label" htmlFor="issue-fullname">
+                    Full name
+                  </label>
+                  <input
+                    id="issue-fullname"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void onAdmit();
+                      }
+                    }}
+                    placeholder="Student full name"
+                    autoComplete="name"
+                    className="field"
+                  />
+                </div>
+                <div className="field-group">
+                  <label className="field-label" htmlFor="issue-class">
+                    Class
+                  </label>
+                  <input
+                    id="issue-class"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void onAdmit();
+                      }
+                    }}
+                    placeholder="e.g. Form 1A"
+                    autoComplete="off"
+                    className="field"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={admitPending || !online || cachedMode}
+                onClick={() => void onAdmit()}
+                className="btn btn-secondary"
+              >
+                {admitPending ? "Saving student…" : "Save & continue to kit"}
+              </button>
+              {(!online || cachedMode) && (
+                <p className="field-hint">
+                  Online required to key in a new student. Use Find student when
+                  offline.
+                </p>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="field-group">
+                <label className="field-label" htmlFor="issue-find">
+                  Search roster
+                </label>
+                <input
+                  id="issue-find"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Admission number or name"
+                  inputMode="search"
+                  autoComplete="off"
+                  className="field"
+                />
+              </div>
+              <ul className="card-inset max-h-64 overflow-y-auto !p-0">
+                {filtered.map((student) => {
+                  const selected = studentId === student.id;
+                  return (
+                    <li
+                      key={student.id}
+                      className="border-b border-[var(--line)] last:border-b-0"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectStudent(student)}
+                        className={`flex min-h-12 w-full items-center justify-between gap-2 px-3 py-2.5 text-left ${
+                          selected
+                            ? "bg-[var(--accent-soft)]"
+                            : "hover:bg-[var(--wash)]"
+                        }`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block font-semibold">
+                            {student.fullName}
+                          </span>
+                          <span className="text-xs text-[var(--muted)]">
+                            {student.admissionNo}
+                            {student.className
+                              ? ` · ${student.className}`
+                              : ""}
+                          </span>
+                        </span>
+                        <span className="flex flex-wrap gap-1">
+                          {student.stillToReceive &&
+                            student.stillToReceive.totalOwed > 0 && (
+                              <span className="chip chip-warn">Still owed</span>
+                            )}
+                          {selected && (
+                            <span className="chip chip-ok">Selected</span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+                {filtered.length === 0 && (
+                  <li className="px-3 py-4 text-sm text-[var(--muted)]">
+                    No students found. Switch to New student to key them in.
+                  </li>
+                )}
+              </ul>
+            </>
+          )}
+
+          {selectedStudent && (
+            <div className="space-y-2">
+              <p className="text-sm text-[var(--accent)]">
+                Issuing to {selectedStudent.fullName}
+                {" · "}
+                {selectedStudent.admissionNo}
+                {selectedStudent.className
+                  ? ` · ${selectedStudent.className}`
+                  : ""}
+              </p>
+              {selectedStudent.stillToReceive &&
+              selectedStudent.stillToReceive.totalOwed > 0 ? (
+                <div className="card-inset border-[color-mix(in_srgb,var(--warn)_35%,var(--line))] bg-[var(--warn-soft)]">
+                  <p className="text-sm font-semibold">
+                    Still to receive · {selectedStudent.stillToReceive.label}
+                  </p>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {selectedStudent.stillToReceive.lines.map((line) => (
+                      <li key={line.itemId}>
+                        {line.qtyOwed}× {line.itemName}
+                      </li>
+                    ))}
+                  </ul>
                   <button
                     type="button"
-                    onClick={() => {
-                      setStudentId(student.id);
-                      setAckName(student.fullName);
-                    }}
-                    className={`flex min-h-12 w-full items-center justify-between gap-2 px-3 py-2.5 text-left ${
-                      selected
-                        ? "bg-[var(--accent-soft)]"
-                        : "hover:bg-[var(--wash)]"
-                    }`}
+                    onClick={fillWhatsLeft}
+                    className="btn btn-primary mt-3"
                   >
-                    <span className="min-w-0">
-                      <span className="block font-semibold">
-                        {student.fullName}
-                      </span>
-                      <span className="text-xs text-[var(--muted)]">
-                        {student.admissionNo}
-                        {student.className ? ` · ${student.className}` : ""}
-                      </span>
-                    </span>
-                    {selected && <span className="chip chip-ok">Selected</span>}
+                    Issue what’s left
                   </button>
-                </li>
-              );
-            })}
-            {filtered.length === 0 && (
-              <li className="px-3 py-4 text-sm text-[var(--muted)]">
-                No students found.
-              </li>
-            )}
-          </ul>
-          {selectedStudent && (
-            <p className="mt-3 text-sm text-[var(--accent)]">
-              Issuing to {selectedStudent.fullName}
-            </p>
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--muted)]">
+                  Tip: load a kit below so we remember anything still owed if
+                  stock runs short.
+                </p>
+              )}
+            </div>
           )}
         </div>
       </section>
@@ -299,7 +583,9 @@ export function IssueForm({
           <span className="step-index">2</span>
           <div className="min-w-0 flex-1">
             <h2 className="card-title">Kit / items</h2>
-            <p className="card-subtitle">Load a kit or add lines manually</p>
+            <p className="card-subtitle">
+              Load a kit (recommended) or add lines manually
+            </p>
           </div>
           <select
             value={kitId}
@@ -314,7 +600,7 @@ export function IssueForm({
             ))}
           </select>
         </div>
-        <div className="step-card-body space-y-3">
+        <div className="step-card-body form-stack">
           {lines.map((line, index) => {
             const item = items.find((i) => i.id === line.itemId);
             const onHand = stockFor(line.itemId, line.sizeLabel);
@@ -322,52 +608,79 @@ export function IssueForm({
             return (
               <div
                 key={`${line.itemId}-${index}`}
-                className="card-inset grid gap-2"
+                className="card-inset form-stack"
               >
-                <select
-                  value={line.itemId}
-                  onChange={(e) => {
-                    const next = items.find((i) => i.id === e.target.value);
-                    updateLine(index, {
-                      itemId: e.target.value,
-                      sizeLabel: next?.sizes[0]?.sizeLabel ?? "M",
-                    });
-                  }}
-                  className="field"
-                >
-                  {items.map((i) => (
-                    <option key={i.id} value={i.id}>
-                      {i.name}
-                    </option>
-                  ))}
-                </select>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="field-group">
+                  <label
+                    className="field-label"
+                    htmlFor={`issue-item-${index}`}
+                  >
+                    Item
+                  </label>
                   <select
-                    value={line.sizeLabel}
-                    onChange={(e) =>
-                      updateLine(index, { sizeLabel: e.target.value })
-                    }
+                    id={`issue-item-${index}`}
+                    value={line.itemId}
+                    onChange={(e) => {
+                      const next = items.find((i) => i.id === e.target.value);
+                      updateLine(index, {
+                        itemId: e.target.value,
+                        sizeLabel: next?.sizes[0]?.sizeLabel ?? "M",
+                      });
+                    }}
                     className="field"
                   >
-                    {(item?.sizes ?? []).map((s) => (
-                      <option key={s.sizeLabel} value={s.sizeLabel}>
-                        Size {s.sizeLabel} (
-                        {stockFor(line.itemId, s.sizeLabel)})
+                    {items.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    min={1}
-                    inputMode="numeric"
-                    value={line.qtyRequested}
-                    onChange={(e) =>
-                      updateLine(index, {
-                        qtyRequested: Number(e.target.value) || 1,
-                      })
-                    }
-                    className="field"
-                  />
+                </div>
+                <div className="form-grid cols-2">
+                  <div className="field-group">
+                    <label
+                      className="field-label"
+                      htmlFor={`issue-size-${index}`}
+                    >
+                      Size
+                    </label>
+                    <select
+                      id={`issue-size-${index}`}
+                      value={line.sizeLabel}
+                      onChange={(e) =>
+                        updateLine(index, { sizeLabel: e.target.value })
+                      }
+                      className="field"
+                    >
+                      {(item?.sizes ?? []).map((s) => (
+                        <option key={s.sizeLabel} value={s.sizeLabel}>
+                          Size {s.sizeLabel} (
+                          {stockFor(line.itemId, s.sizeLabel)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field-group">
+                    <label
+                      className="field-label"
+                      htmlFor={`issue-qty-${index}`}
+                    >
+                      Qty
+                    </label>
+                    <input
+                      id={`issue-qty-${index}`}
+                      type="number"
+                      min={1}
+                      inputMode="numeric"
+                      value={line.qtyRequested}
+                      onChange={(e) =>
+                        updateLine(index, {
+                          qtyRequested: Number(e.target.value) || 1,
+                        })
+                      }
+                      className="field"
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className="chip">On hand {onHand}</span>
@@ -381,12 +694,10 @@ export function IssueForm({
             );
           })}
           {lines.length === 0 && (
-            <p className="text-sm text-[var(--muted)]">
-              Load a kit or add item lines to continue.
-            </p>
+            <p className="field-hint">Load a kit or add item lines to continue.</p>
           )}
           <button type="button" onClick={addLine} className="btn btn-secondary">
-            + Add item line
+            Add item line
           </button>
         </div>
       </section>
@@ -395,51 +706,64 @@ export function IssueForm({
         <div className="step-card-head">
           <span className="step-index">3</span>
           <div>
-            <h2 className="card-title">Acknowledgment</h2>
-            <p className="card-subtitle">Signature required before save</p>
+            <h2 className="card-title">Payment</h2>
+            <p className="card-subtitle">
+              How the parent paid — method and reference only (no amount)
+            </p>
           </div>
         </div>
-        <div className="step-card-body">
-          <label className="block text-sm font-semibold">
-            Signed by
-            <input
-              value={ackName}
-              onChange={(e) => setAckName(e.target.value)}
-              className="field mt-1.5"
+        <div className="step-card-body form-grid cols-2">
+          <div className="field-group">
+            <label className="field-label" htmlFor="issue-pay-method">
+              Method
+            </label>
+            <select
+              id="issue-pay-method"
+              value={paymentMethod}
+              onChange={(e) => setPaymentMethod(e.target.value as PayMethod)}
+              className="field"
               required
-            />
-          </label>
-          <div className="mt-4">
-            <SignaturePad
-              key={signatureKey}
-              name="signaturePad"
-              onChange={setSignature}
+            >
+              <option value="cash">Cash</option>
+              <option value="mpesa">M-Pesa</option>
+              <option value="bank">Bank</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="issue-pay-ref">
+              Reference
+            </label>
+            <input
+              id="issue-pay-ref"
+              value={paymentReference}
+              onChange={(e) => setPaymentReference(e.target.value)}
+              placeholder="Receipt no. or M-Pesa code"
+              className="field"
+              autoComplete="off"
             />
           </div>
         </div>
       </section>
 
       {error && (
-        <p className="card-inset border-[color-mix(in_srgb,var(--danger)_35%,var(--line))] bg-[var(--danger-soft)] text-sm text-[var(--danger)]">
+        <p className="field-error" role="alert">
           {error}
         </p>
       )}
-      {queuedNote && (
-        <p className="card-inset border-[color-mix(in_srgb,var(--ok)_35%,var(--line))] bg-[var(--ok-soft)] text-sm text-[var(--ok)]">
-          {queuedNote}
-        </p>
-      )}
+      {queuedNote && <p className="field-ok">{queuedNote}</p>}
+      {successNote && <p className="field-ok">{successNote}</p>}
 
       <div className="sticky-actions no-print">
         <button
           type="submit"
           disabled={!canSubmit}
-          className="btn btn-primary w-full"
+          className="btn btn-primary btn-block"
         >
           {pending
-            ? "Saving issue…"
+            ? "Saving…"
             : online && !cachedMode
-              ? "Complete issue & print slip"
+              ? "Save issue"
               : "Queue issue offline"}
         </button>
       </div>

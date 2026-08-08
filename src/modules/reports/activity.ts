@@ -15,7 +15,8 @@ export type SupplierActivityKind =
   | "delivery_dispatch"
   | "delivery_delivered"
   | "invoice_issued"
-  | "payment_confirmed";
+  | "payment_confirmed"
+  | "co_issue";
 
 export type ActivityEvent = {
   id: string;
@@ -150,7 +151,7 @@ export async function supplierActivityFeed(
   supplierId: string,
   take = 40,
 ): Promise<ActivityEvent[]> {
-  const [orders, deliveries, invoices, payments] = await Promise.all([
+  const [orders, deliveries, invoices, payments, coIssues] = await Promise.all([
     prisma.supplyOrder.findMany({
       where: { supplierId },
       include: {
@@ -186,6 +187,20 @@ export async function supplierActivityFeed(
         recordedBy: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
+      take,
+    }),
+    prisma.issueSlip.findMany({
+      where: {
+        issuedBy: { supplierId },
+        status: "issued",
+      },
+      include: {
+        school: { select: { name: true, code: true } },
+        student: { select: { fullName: true, admissionNo: true } },
+        issuedBy: { select: { name: true } },
+        lines: true,
+      },
+      orderBy: { issuedAt: "desc" },
       take,
     }),
   ]);
@@ -271,6 +286,20 @@ export async function supplierActivityFeed(
       href: `/supplier/invoices/${payment.invoiceId}`,
       actorName: payment.recordedBy?.name ?? null,
       correlationId: payment.paymentNo,
+    });
+  }
+
+  for (const slip of coIssues) {
+    const units = slip.lines.reduce((sum, l) => sum + l.qtyIssued, 0);
+    events.push({
+      id: `co-issue:${slip.id}`,
+      at: slip.issuedAt,
+      kind: "co_issue",
+      title: `Co-issued ${slip.slipNo}`,
+      detail: `${slip.school.name} · ${slip.student.fullName} (${slip.student.admissionNo}) · ${units} unit${units === 1 ? "" : "s"}`,
+      href: `/supplier/slips/${slip.id}`,
+      actorName: slip.issuedBy.name,
+      correlationId: slip.slipNo,
     });
   }
 

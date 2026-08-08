@@ -13,10 +13,10 @@ describe("notifications", () => {
     const notices = await listSchoolNotifications(desk.school.id);
 
     expect(notices.some((n) => n.kind === "low_stock")).toBe(true);
-    expect(notices.find((n) => n.kind === "low_stock")?.href).toBe("/reorder");
+    expect(notices.find((n) => n.kind === "low_stock")?.href).toBe("/stock");
   });
 
-  it("flags unpaid invoices and inbound deliveries", async () => {
+  it("school sees inbound deliveries; supplier sees unpaid invoices", async () => {
     const chain = await seedSupplyChain();
     const delivery = await createDelivery({
       supplierId: chain.supplier.id,
@@ -37,11 +37,7 @@ describe("notifications", () => {
         (n) => n.kind === "delivery_receive" && n.href.includes(delivery.id),
       ),
     ).toBe(true);
-    expect(
-      school.some(
-        (n) => n.kind === "unpaid_invoice" && n.href.includes(invoice.id),
-      ),
-    ).toBe(true);
+    expect(school.some((n) => n.kind === "unpaid_invoice")).toBe(false);
 
     const supplier = await listSupplierNotifications(chain.supplier.id);
     expect(

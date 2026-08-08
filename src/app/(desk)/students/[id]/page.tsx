@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { notFound } from "next/navigation";
 import { StatusPill } from "@/components/status-pill";
 import { requireSchoolUser } from "@/lib/auth";
+import { getStudentStillToReceive } from "@/modules/issue/outstanding";
 import {
   getSchoolStudent,
   studentHistory,
@@ -18,7 +19,10 @@ export default async function StudentHistoryPage({
   const student = await getSchoolStudent(user.schoolId, id);
   if (!student) notFound();
 
-  const slips = await studentHistory(user.schoolId, student.id);
+  const [slips, still] = await Promise.all([
+    studentHistory(user.schoolId, student.id),
+    getStudentStillToReceive(user.schoolId, student.id),
+  ]);
 
   return (
     <div className="page-stack">
@@ -35,6 +39,34 @@ export default async function StudentHistoryPage({
           {!student.active ? " · inactive" : ""}
         </p>
       </section>
+
+      {still ? (
+        <section className="card border-[color-mix(in_srgb,var(--warn)_30%,var(--line))]">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title text-base">Still to receive</h2>
+              <p className="card-subtitle">{still.label}</p>
+            </div>
+            <span className="chip chip-warn">{still.totalOwed} left</span>
+          </div>
+          <div className="card-body space-y-3">
+            <ul className="space-y-1 text-sm">
+              {still.lines.map((line) => (
+                <li key={line.itemId}>
+                  {line.qtyOwed}× {line.itemName}
+                </li>
+              ))}
+            </ul>
+            <Link href="/issue" className="btn btn-primary">
+              Issue what’s left
+            </Link>
+          </div>
+        </section>
+      ) : slips.length > 0 ? (
+        <p className="card-inset text-sm text-[var(--ok)]">
+          All uniforms on their current set have been received.
+        </p>
+      ) : null}
 
       <section className="card">
         <div className="card-header">

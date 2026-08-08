@@ -1,4 +1,6 @@
+import type { PaymentMethod } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { applyIssueToUniformPlan } from "@/modules/issue/outstanding";
 import { newPublicToken } from "@/modules/issue/proof";
 
 export type IssueLineInput = {
@@ -6,6 +8,11 @@ export type IssueLineInput = {
   sizeLabel: string;
   qtyRequested: number;
 };
+
+const DESK_ACK_NAME = "Desk issue";
+/** Minimal placeholder — parent slip/signature not required */
+const DESK_ACK_MARK =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 type DbClient = {
   issueSlip: typeof prisma.issueSlip;
@@ -29,18 +36,21 @@ export async function issueKit(input: {
   schoolId: string;
   actorUserId: string;
   studentId: string;
-  acknowledgmentName: string;
-  acknowledgmentSignature: string;
   lines: IssueLineInput[];
+  /** How parent paid at the desk (no amount stored) */
+  paymentMethod: PaymentMethod;
+  paymentReference?: string | null;
+  /** When set, opens/extends the student’s “still to receive” kit plan */
+  kitId?: string | null;
+  /** @deprecated Parent slip/signature not required */
+  acknowledgmentName?: string;
+  acknowledgmentSignature?: string;
 }) {
-  if (!input.acknowledgmentName.trim()) {
-    throw new Error("Acknowledgment name is required");
-  }
-  if (!input.acknowledgmentSignature.startsWith("data:image")) {
-    throw new Error("Signature is required");
-  }
   if (!input.lines.length) {
     throw new Error("Add at least one item to issue");
+  }
+  if (!input.paymentMethod) {
+    throw new Error("Payment method is required");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -88,9 +98,15 @@ export async function issueKit(input: {
         issuedById: input.actorUserId,
         issuedAt: now,
         status: "issued",
-        acknowledgmentName: input.acknowledgmentName.trim(),
-        acknowledgmentSignature: input.acknowledgmentSignature,
+        acknowledgmentName:
+          input.acknowledgmentName?.trim() || DESK_ACK_NAME,
+        acknowledgmentSignature:
+          input.acknowledgmentSignature?.startsWith("data:image")
+            ? input.acknowledgmentSignature
+            : DESK_ACK_MARK,
         acknowledgedAt: now,
+        paymentMethod: input.paymentMethod,
+        paymentReference: input.paymentReference?.trim() || null,
         publicToken: newPublicToken(),
         lines: {
           create: prepared.map((line) => ({
@@ -154,6 +170,17 @@ export async function issueKit(input: {
       }
     }
 
+    await applyIssueToUniformPlan(tx, {
+      schoolId: input.schoolId,
+      studentId: input.studentId,
+      kitId: input.kitId,
+      lines: prepared.map((line) => ({
+        itemId: line.itemId,
+        qtyRequested: line.qtyRequested,
+        qtyIssued: line.qtyIssued,
+      })),
+    });
+
     return slip;
   });
 }
@@ -164,7 +191,7 @@ export async function getSlip(schoolId: string, slipId: string) {
     include: {
       lines: { include: { item: true } },
       student: true,
-      issuedBy: true,
+      issuedBy: { include: { supplier: true, school: true } },
       voidedBy: true,
       school: true,
     },

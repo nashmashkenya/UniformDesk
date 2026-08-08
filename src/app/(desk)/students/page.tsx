@@ -17,7 +17,8 @@ export default async function StudentsPage() {
         <div className="page-header-main">
           <h1 className="page-title">Students</h1>
           <p className="page-sub">
-            Lightweight roster for issue — admission number is the key.
+            Admission roster for co-issue. New students can be keyed in at the
+            issue desk (admission no, name, class).
           </p>
         </div>
         <span className="chip">{students.length} students</span>

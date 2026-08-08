@@ -2,59 +2,103 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { canManage, requireSchoolUser } from "@/lib/auth";
+import {
+  canManage,
+  canWrite,
+  getSessionUser,
+  requireSchoolUser,
+} from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
   importStudents,
   parseStudentCsv,
 } from "@/modules/identity/students-import";
+import { resolveIssueAccess } from "@/modules/issue/access";
 
 export type StudentState = {
   error?: string;
   ok?: boolean;
   message?: string;
+  studentId?: string;
+  admissionNo?: string;
+  fullName?: string;
+  className?: string | null;
 };
 
 const schema = z.object({
   admissionNo: z.string().min(1),
   fullName: z.string().min(1),
   className: z.string().optional(),
+  schoolId: z.string().optional(),
 });
 
 export async function addStudentAction(
   _prev: StudentState,
   formData: FormData,
 ): Promise<StudentState> {
-  const user = await requireSchoolUser();
-  if (!canManage(user.role) && user.role !== "storekeeper") {
-    return { error: "You do not have permission to add students" };
-  }
+  const user = await getSessionUser();
+  if (!user) return { error: "Unauthorized" };
 
   const parsed = schema.safeParse({
     admissionNo: formData.get("admissionNo"),
     fullName: formData.get("fullName"),
     className: formData.get("className") || undefined,
+    schoolId: formData.get("schoolId") || undefined,
   });
   if (!parsed.success) {
     return { error: "Admission number and full name are required" };
   }
 
+  let schoolId: string;
   try {
-    await prisma.student.create({
+    if (user.tenant === "school") {
+      if (!canWrite(user.role) && !canManage(user.role)) {
+        return { error: "You do not have permission to add students" };
+      }
+      schoolId = user.schoolId!;
+    } else {
+      const access = await resolveIssueAccess(user, parsed.data.schoolId);
+      schoolId = access.schoolId;
+    }
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "You do not have permission to add students",
+    };
+  }
+
+  const admissionNo = parsed.data.admissionNo.trim().toUpperCase();
+  const fullName = parsed.data.fullName.trim();
+  const className = parsed.data.className?.trim() || null;
+
+  let studentId = "";
+  try {
+    const student = await prisma.student.create({
       data: {
-        schoolId: user.schoolId,
-        admissionNo: parsed.data.admissionNo.trim().toUpperCase(),
-        fullName: parsed.data.fullName.trim(),
-        className: parsed.data.className?.trim() || null,
+        schoolId,
+        admissionNo,
+        fullName,
+        className,
       },
     });
+    studentId = student.id;
   } catch {
     return { error: "Student with this admission number already exists" };
   }
 
   revalidatePath("/students");
   revalidatePath("/issue");
-  return { ok: true };
+  revalidatePath("/supplier/issue");
+  return {
+    ok: true,
+    studentId,
+    admissionNo,
+    fullName,
+    className,
+    message: "Student ready for uniform issue",
+  };
 }
 
 export async function importStudentsAction(
@@ -62,7 +106,7 @@ export async function importStudentsAction(
   formData: FormData,
 ): Promise<StudentState> {
   const user = await requireSchoolUser();
-  if (!canManage(user.role) && user.role !== "storekeeper") {
+  if (!canWrite(user.role) && !canManage(user.role)) {
     return { error: "You do not have permission to import students" };
   }
 

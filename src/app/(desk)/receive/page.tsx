@@ -14,12 +14,13 @@ export default async function ReceivePage() {
   });
 
   return (
-    <div className="page-stack mx-auto max-w-xl">
+    <div className="page-stack mx-auto max-w-2xl">
       <header className="page-header animate-rise">
         <div className="page-header-main">
           <h1 className="page-title">Receive stock</h1>
           <p className="page-sub">
-            Every receipt posts to the ledger and updates balances.
+            Record inbound deliveries. Every receipt posts to the ledger and
+            updates on-hand balances.
           </p>
         </div>
       </header>
@@ -27,7 +28,9 @@ export default async function ReceivePage() {
         <div className="card-header">
           <div>
             <h2 className="card-title">Inbound delivery</h2>
-            <p className="card-subtitle">Supplier, note, and stock lines</p>
+            <p className="card-subtitle">
+              Supplier, reference note, and stock lines
+            </p>
           </div>
         </div>
         <div className="card-body">

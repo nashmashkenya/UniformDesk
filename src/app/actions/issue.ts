@@ -24,31 +24,30 @@ export async function issueKitAction(
 
   let payload;
   try {
+    const kitRaw = String(formData.get("kitId") ?? "").trim();
     payload = parseIssuePayload({
       studentId: String(formData.get("studentId") ?? ""),
-      acknowledgmentName: String(formData.get("acknowledgmentName") ?? ""),
-      acknowledgmentSignature: String(
-        formData.get("acknowledgmentSignature") ?? "",
-      ),
+      paymentMethod: String(formData.get("paymentMethod") ?? "cash"),
+      paymentReference: String(formData.get("paymentReference") ?? "") || undefined,
+      kitId: kitRaw || undefined,
       lines: z
         .array(issueLineSchema)
         .parse(JSON.parse(String(formData.get("linesJson") ?? "[]"))),
     });
   } catch {
-    return { error: "Invalid issue lines" };
+    return { error: "Invalid issue details" };
   }
 
-  let slipId: string;
   try {
-    const slip = await issueKit({
+    await issueKit({
       schoolId: user.schoolId,
       actorUserId: user.id,
       studentId: payload.studentId,
-      acknowledgmentName: payload.acknowledgmentName,
-      acknowledgmentSignature: payload.acknowledgmentSignature,
       lines: payload.lines,
+      kitId: payload.kitId,
+      paymentMethod: payload.paymentMethod,
+      paymentReference: payload.paymentReference,
     });
-    slipId = slip.id;
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Could not issue kit",
@@ -59,7 +58,9 @@ export async function issueKitAction(
   revalidatePath("/issue");
   revalidatePath("/stock");
   revalidatePath("/reports");
-  redirect(`/slips/${slipId}`);
+  revalidatePath("/incomplete");
+  revalidatePath("/students");
+  redirect("/issue");
 }
 
 export type VoidState = { error?: string };
@@ -91,7 +92,8 @@ export async function voidIssueAction(
 
   revalidatePath("/");
   revalidatePath("/reports");
+  revalidatePath("/incomplete");
+  revalidatePath("/students");
   revalidatePath(`/slips/${slipId}`);
-  redirect(`/slips/${slipId}`);
+  redirect("/issue");
 }
-

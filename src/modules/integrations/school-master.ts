@@ -9,7 +9,12 @@ import {
 } from "@/modules/identity/students-import";
 import type { Role } from "@/generated/prisma/client";
 
-const SCHOOL_ROLES: Role[] = ["school_admin", "storekeeper", "auditor"];
+const SCHOOL_ROLES: Role[] = [
+  "school_reporter",
+  "school_admin",
+  "storekeeper",
+  "auditor",
+];
 
 function secretKey() {
   const secret = process.env.AUTH_SECRET;
@@ -125,7 +130,7 @@ export async function issueSchoolMasterSso(input: {
   const role: Role =
     input.role && SCHOOL_ROLES.includes(input.role)
       ? input.role
-      : "storekeeper";
+      : "school_reporter";
 
   let user = await prisma.user.findUnique({ where: { email } });
   if (user) {

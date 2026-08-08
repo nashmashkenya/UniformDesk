@@ -18,17 +18,27 @@ export function VoidForm({ slipId }: { slipId: string }) {
           </p>
         </div>
       </div>
-      <div className="card-body space-y-3">
+      <div className="card-body form-stack">
         <input type="hidden" name="slipId" value={slipId} />
-        <textarea
-          name="reason"
-          required
-          rows={3}
-          placeholder="Reason for void"
-          className="field min-h-24"
-        />
+        <div className="field-group">
+          <label className="field-label" htmlFor="void-reason">
+            Reason
+          </label>
+          <textarea
+            id="void-reason"
+            name="reason"
+            required
+            rows={3}
+            placeholder="Why this issue is being voided"
+            className="field"
+            aria-invalid={state.error ? true : undefined}
+          />
+          <p className="field-hint">Shown on the audit trail for this slip</p>
+        </div>
         {state.error && (
-          <p className="text-sm text-[var(--danger)]">{state.error}</p>
+          <p className="field-error" role="alert">
+            {state.error}
+          </p>
         )}
       </div>
       <div className="card-footer">

@@ -14,49 +14,63 @@ export function UserForm() {
   }, [state]);
 
   return (
-    <form ref={formRef} action={action} className="grid gap-3 sm:grid-cols-2">
-      <label className="block text-sm font-semibold">
-        Full name
-        <input name="name" required className="field mt-1.5" />
-      </label>
-      <label className="block text-sm font-semibold">
-        Email
-        <input
-          name="email"
-          type="email"
-          required
-          className="field mt-1.5"
-          autoComplete="off"
-        />
-      </label>
-      <label className="block text-sm font-semibold">
-        Role
-        <select name="role" className="field mt-1.5" defaultValue="storekeeper">
-          <option value="storekeeper">Storekeeper</option>
-          <option value="school_admin">School admin</option>
-          <option value="auditor">Auditor</option>
-        </select>
-      </label>
-      <label className="block text-sm font-semibold">
-        Temporary password
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          className="field mt-1.5"
-          autoComplete="new-password"
-        />
-      </label>
+    <form ref={formRef} action={action} className="form-stack">
+      <div className="form-grid cols-2">
+        <div className="field-group">
+          <label className="field-label" htmlFor="user-name">
+            Full name
+          </label>
+          <input id="user-name" name="name" required className="field" />
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="user-email">
+            Email
+          </label>
+          <input
+            id="user-email"
+            name="email"
+            type="email"
+            required
+            className="field"
+            autoComplete="off"
+          />
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="user-role">
+            Role
+          </label>
+          <select
+            id="user-role"
+            name="role"
+            className="field"
+            defaultValue="school_reporter"
+          >
+            <option value="school_reporter">School reporter</option>
+          </select>
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="user-password">
+            Temporary password
+          </label>
+          <input
+            id="user-password"
+            name="password"
+            type="password"
+            required
+            minLength={8}
+            className="field"
+            autoComplete="new-password"
+          />
+          <p className="field-hint">At least 8 characters</p>
+        </div>
+      </div>
       {state.error && (
-        <p className="text-sm text-[var(--danger)] sm:col-span-2">
+        <p className="field-error" role="alert">
           {state.error}
         </p>
       )}
-      {state.ok && (
-        <p className="text-sm text-[var(--ok)] sm:col-span-2">User created.</p>
-      )}
-      <div className="sm:col-span-2">
+      {state.ok && <p className="field-ok">User created.</p>}
+      <div>
         <button type="submit" disabled={pending} className="btn btn-primary">
           {pending ? "Saving…" : "Add user"}
         </button>

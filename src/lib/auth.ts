@@ -21,6 +21,14 @@ export type SessionUser = {
   tenant: "school" | "supplier";
 };
 
+/** Active school campus role (+ legacy aliases still in DB). */
+const SCHOOL_OPERATOR_ROLES: Role[] = [
+  "school_reporter",
+  "storekeeper",
+  "school_admin",
+  "auditor",
+];
+
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10);
 }
@@ -123,10 +131,16 @@ export async function requireSupplierUser(roles?: Role[]) {
   return user as SessionUser & { supplierId: string; supplierName: string };
 }
 
+/** School campus: co-issue, stock receive/adjust, students. */
 export function canWrite(role: Role) {
-  return role === "school_admin" || role === "storekeeper";
+  return (
+    role === "school_reporter" ||
+    role === "storekeeper" ||
+    role === "school_admin"
+  );
 }
 
+/** Legacy school admin-only setup (catalog/users). Prefer supplier-owned setup. */
 export function canManage(role: Role) {
   return role === "school_admin";
 }
@@ -135,6 +149,16 @@ export function canSupplierWrite(role: Role) {
   return role === "supplier_admin" || role === "supplier_staff";
 }
 
+export function isSchoolOperator(role: Role) {
+  return SCHOOL_OPERATOR_ROLES.includes(role);
+}
+
+/** Reports / audit export for campus reporters (+ legacy auditor/admin). */
+export function canViewReports(role: Role) {
+  return isSchoolOperator(role) || role === "supplier_admin" || role === "supplier_staff";
+}
+
 export function homePathForUser(user: SessionUser) {
-  return user.tenant === "supplier" ? "/supplier" : "/";
+  if (user.tenant === "supplier") return "/supplier";
+  return "/";
 }

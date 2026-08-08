@@ -2,7 +2,7 @@ import { hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { Role } from "@/generated/prisma/client";
 
-const ROLES: Role[] = ["school_admin", "storekeeper", "auditor"];
+const ROLES: Role[] = ["school_reporter"];
 
 export function listRoles() {
   return ROLES;
@@ -79,16 +79,16 @@ export async function setUserActive(input: {
   });
   if (!user) throw new Error("User not found");
 
-  if (!input.active && user.role === "school_admin") {
-    const adminCount = await prisma.user.count({
+  if (!input.active && user.role === "school_reporter") {
+    const reporterCount = await prisma.user.count({
       where: {
         schoolId: input.schoolId,
-        role: "school_admin",
+        role: "school_reporter",
         active: true,
       },
     });
-    if (adminCount <= 1) {
-      throw new Error("Keep at least one active school admin");
+    if (reporterCount <= 1) {
+      throw new Error("Keep at least one active school reporter");
     }
   }
 

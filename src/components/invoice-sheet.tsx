@@ -49,26 +49,25 @@ export function InvoiceSheet({
         <div className="text-right text-sm">
           <div className="font-semibold">{fromName}</div>
           {fromSub && <div className="text-[var(--muted)]">{fromSub}</div>}
-          <div className="mt-2 text-xs text-[var(--muted)]">
-            Issued{" "}
-            {issuedAt ? format(issuedAt, "dd MMM yyyy") : "—"}
+          <div className="mt-1 text-xs text-[var(--muted)]">
+            Issued {issuedAt ? format(issuedAt, "dd MMM yy") : "—"}
           </div>
         </div>
       </div>
 
-      <div className="card-body space-y-4">
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
+      <div className="card-body space-y-3">
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
           <div className="card-inset">
             <div className="section-label">Bill to</div>
-            <div className="mt-1 font-semibold">{toName}</div>
+            <div className="mt-0.5 font-semibold">{toName}</div>
             {toSub && <div className="text-[var(--muted)]">{toSub}</div>}
           </div>
           <div className="card-inset">
             <div className="section-label">Delivery</div>
-            <div className="mt-1 font-semibold">{deliveryNo ?? "—"}</div>
+            <div className="mt-0.5 font-semibold">{deliveryNo ?? "—"}</div>
             {paidAt && (
               <div className="text-[var(--muted)]">
-                Paid {format(paidAt, "dd MMM yyyy HH:mm")}
+                Paid {format(paidAt, "dd MMM yy HH:mm")}
               </div>
             )}
           </div>
@@ -101,7 +100,7 @@ export function InvoiceSheet({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="text-sm text-[var(--muted)]">
             {note ? `Note: ${note}` : "UniformDesk supply invoice"}
           </div>

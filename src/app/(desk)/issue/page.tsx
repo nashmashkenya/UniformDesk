@@ -15,9 +15,8 @@ export default async function IssuePage() {
         <div className="page-header-main">
           <h1 className="page-title">Issue desk</h1>
           <p className="page-sub">
-            No issue without a signed slip. Shortages are recorded, not hidden.
-            Opening this page (or desk home) caches the roster for cold offline
-            starts.
+            Co-issue at admission — student, items, then payment method and
+            reference. No parent slip needed. Shortages stay on Still to receive.
           </p>
         </div>
       </header>

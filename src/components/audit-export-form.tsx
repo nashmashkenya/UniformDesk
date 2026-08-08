@@ -17,33 +17,40 @@ export function AuditExportForm() {
   const [to, setTo] = useState(() => todayInput());
 
   const href = useMemo(
-    () => `/api/audit-export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    () =>
+      `/api/audit-export?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
     [from, to],
   );
 
   return (
-    <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-      <label className="block text-sm font-medium">
-        From
+    <form className="form-grid cols-3 items-end">
+      <div className="field-group">
+        <label className="field-label" htmlFor="audit-from">
+          From
+        </label>
         <input
+          id="audit-from"
           type="date"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
-          className="field mt-1.5"
+          className="field"
           required
         />
-      </label>
-      <label className="block text-sm font-medium">
-        To
+      </div>
+      <div className="field-group">
+        <label className="field-label" htmlFor="audit-to">
+          To
+        </label>
         <input
+          id="audit-to"
           type="date"
           value={to}
           onChange={(e) => setTo(e.target.value)}
-          className="field mt-1.5"
+          className="field"
           required
         />
-      </label>
-      <a href={href} className="btn btn-primary min-h-8">
+      </div>
+      <a href={href} className="btn btn-primary">
         Download CSV
       </a>
     </form>

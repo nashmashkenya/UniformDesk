@@ -1,10 +1,12 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { DeskSearch } from "@/components/desk-search";
+import { NavIcons } from "@/components/nav-icons";
 import { ThemeMenu } from "@/components/theme-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { SessionUser } from "@/lib/auth";
@@ -13,39 +15,113 @@ type NavItem = {
   href: string;
   label: string;
   desc?: string;
+  icon: () => React.ReactNode;
 };
 
 const primary: NavItem[] = [
-  { href: "/supplier", label: "Home", desc: "Supply overview" },
-  { href: "/supplier/orders", label: "Orders", desc: "School POs" },
-  { href: "/supplier/deliveries", label: "Deliveries", desc: "Pack & dispatch" },
-  { href: "/supplier/invoices", label: "Invoices", desc: "Bill & collect" },
+  { href: "/supplier", label: "Home", desc: "Supply overview", icon: NavIcons.home },
+  {
+    href: "/supplier/issue",
+    label: "Co-issue",
+    desc: "Admission issue with school",
+    icon: NavIcons.issue,
+  },
+  {
+    href: "/supplier/reports",
+    label: "Reports",
+    desc: "Issued & stock",
+    icon: NavIcons.reports,
+  },
+  {
+    href: "/supplier/deliveries",
+    label: "Deliveries",
+    desc: "Pack & dispatch",
+    icon: NavIcons.deliveries,
+  },
 ];
 
-const moreLinks: NavItem[] = [
+const moreLinksAll: NavItem[] = [
+  {
+    href: "/supplier/incomplete",
+    label: "Still owed",
+    desc: "Incomplete uniforms",
+    icon: NavIcons.reports,
+  },
+  {
+    href: "/supplier/orders",
+    label: "Orders",
+    desc: "School POs",
+    icon: NavIcons.orders,
+  },
+  {
+    href: "/supplier/invoices",
+    label: "Invoices",
+    desc: "Bill & collect",
+    icon: NavIcons.invoices,
+  },
   {
     href: "/supplier/activity",
     label: "Activity",
     desc: "Orders, DN, invoices, payments",
+    icon: NavIcons.activity,
   },
   {
     href: "/supplier/notifications",
     label: "Notifications",
     desc: "Dispatch, collect, open orders",
+    icon: NavIcons.bell,
   },
   {
     href: "/supplier/search",
     label: "Search",
     desc: "Schools, SKUs, supply docs",
+    icon: NavIcons.search,
   },
-  { href: "/supplier/schools", label: "Schools", desc: "Multi-school portfolio" },
-  { href: "/supplier/catalog", label: "Catalog", desc: "Products & SKUs" },
-  { href: "/supplier/branding", label: "Branding", desc: "White-label look" },
+  {
+    href: "/supplier/schools",
+    label: "Schools",
+    desc: "Multi-school portfolio",
+    icon: NavIcons.schools,
+  },
+  {
+    href: "/supplier/catalog",
+    label: "Catalog",
+    desc: "Products & SKUs",
+    icon: NavIcons.catalog,
+  },
+  {
+    href: "/supplier/branding",
+    label: "Branding",
+    desc: "White-label look",
+    icon: NavIcons.branding,
+  },
 ];
 
 function isActive(pathname: string, href: string) {
   if (href === "/supplier") return pathname === "/supplier";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function useMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function onPointerDown(event: MouseEvent) {
+      if (!ref.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return { open, setOpen, ref };
 }
 
 export function SupplierNav({
@@ -58,26 +134,25 @@ export function SupplierNav({
   noticeCount?: number;
 }) {
   const pathname = usePathname();
-  const [accountOpen, setAccountOpen] = useState(false);
+  const more = useMenu();
+  const account = useMenu();
   const [mobileMore, setMobileMore] = useState(false);
-  const accountRef = useRef<HTMLDivElement>(null);
   const mark = brandMark || "UD";
-  const navLinks =
+  const moreLinks =
     user.role === "supplier_admin"
-      ? moreLinks
-      : moreLinks.filter((l) => l.href !== "/supplier/branding");
+      ? moreLinksAll
+      : moreLinksAll.filter((l) => l.href !== "/supplier/branding");
   const noticeLabel =
     noticeCount > 99 ? "99+" : noticeCount > 0 ? String(noticeCount) : null;
 
   useEffect(() => {
-    function onPointerDown(event: MouseEvent) {
-      if (!accountRef.current?.contains(event.target as Node)) {
-        setAccountOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", onPointerDown);
-    return () => document.removeEventListener("mousedown", onPointerDown);
-  }, []);
+    if (!mobileMore) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMore]);
 
   return (
     <>
@@ -94,24 +169,73 @@ export function SupplierNav({
           </Link>
 
           <nav className="nav-pill" aria-label="Main">
-            {primary.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`nav-pill-link ${isActive(pathname, link.href) ? "is-active" : ""}`}
+            {primary.map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`nav-pill-link ${isActive(pathname, link.href) ? "is-active" : ""}`}
+                >
+                  <Icon />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+
+            <div className="relative" ref={more.ref}>
+              <button
+                type="button"
+                className={`nav-pill-link ${
+                  more.open || moreLinks.some((l) => isActive(pathname, l.href))
+                    ? "is-active"
+                    : ""
+                }`}
+                aria-haspopup="menu"
+                aria-expanded={more.open}
+                onClick={() => {
+                  account.setOpen(false);
+                  more.setOpen((v) => !v);
+                }}
               >
-                <span>{link.label}</span>
-              </Link>
-            ))}
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`nav-pill-link ${isActive(pathname, link.href) ? "is-active" : ""}`}
-              >
-                <span>{link.label}</span>
-              </Link>
-            ))}
+                <NavIcons.more />
+                <span>More</span>
+                <ChevronDown
+                  size={12}
+                  strokeWidth={2}
+                  aria-hidden
+                  className={`transition ${more.open ? "rotate-180" : ""}`}
+                />
+              </button>
+              {more.open && (
+                <div className="nav-dropdown nav-dropdown-center" role="menu">
+                  <div className="nav-menu-label">Supply tools</div>
+                  {moreLinks.map((link) => {
+                    const Icon = link.icon;
+                    const active = isActive(pathname, link.href);
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        role="menuitem"
+                        className={`nav-menu-item ${active ? "is-active" : ""}`}
+                        onClick={() => more.setOpen(false)}
+                      >
+                        <span className="nav-menu-icon">
+                          <Icon />
+                        </span>
+                        <span>
+                          <span className="block font-semibold">{link.label}</span>
+                          <span className="block text-xs text-[var(--muted)]">
+                            {link.desc}
+                          </span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="nav-actions">
@@ -133,7 +257,7 @@ export function SupplierNav({
               }
               title="Notifications"
             >
-              <BellIcon />
+              <NavIcons.bell />
               {noticeLabel && (
                 <span className="nav-badge" aria-hidden>
                   {noticeLabel}
@@ -141,13 +265,16 @@ export function SupplierNav({
               )}
             </Link>
             <ThemeMenu />
-            <div className="relative" ref={accountRef}>
+            <div className="relative" ref={account.ref}>
               <button
                 type="button"
                 className="nav-account-btn"
                 aria-haspopup="menu"
-                aria-expanded={accountOpen}
-                onClick={() => setAccountOpen((v) => !v)}
+                aria-expanded={account.open}
+                onClick={() => {
+                  more.setOpen(false);
+                  account.setOpen((v) => !v);
+                }}
               >
                 <span className="nav-avatar" aria-hidden>
                   {user.name
@@ -165,8 +292,14 @@ export function SupplierNav({
                     {user.role.replace("_", " ")}
                   </span>
                 </span>
+                <ChevronDown
+                  size={12}
+                  strokeWidth={2}
+                  aria-hidden
+                  className={`transition ${account.open ? "rotate-180" : ""}`}
+                />
               </button>
-              {accountOpen && (
+              {account.open && (
                 <div className="nav-dropdown nav-dropdown-right" role="menu">
                   <div className="px-3 py-2">
                     <div className="font-semibold">{user.name}</div>
@@ -181,6 +314,9 @@ export function SupplierNav({
                       type="submit"
                       className="nav-menu-item w-full text-[var(--danger)]"
                     >
+                      <span className="nav-menu-icon">
+                        <NavIcons.logout />
+                      </span>
                       <span className="font-semibold">Sign out</span>
                     </button>
                   </form>
@@ -193,20 +329,45 @@ export function SupplierNav({
 
       <nav className="desk-bottom-nav no-print md:hidden" aria-label="Mobile">
         <div className="mobile-dock">
-          {primary.slice(0, 3).map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`mobile-dock-link ${isActive(pathname, link.href) ? "is-active" : ""}`}
-            >
-              <span>{link.label}</span>
-            </Link>
-          ))}
+          <Link
+            href="/supplier"
+            className={`mobile-dock-link ${pathname === "/supplier" ? "is-active" : ""}`}
+          >
+            <NavIcons.home />
+            <span>Home</span>
+          </Link>
+          <Link
+            href="/supplier/reports"
+            className={`mobile-dock-link ${isActive(pathname, "/supplier/reports") ? "is-active" : ""}`}
+          >
+            <NavIcons.reports />
+            <span>Reports</span>
+          </Link>
+          <Link
+            href="/supplier/issue"
+            className={`mobile-fab ${isActive(pathname, "/supplier/issue") ? "is-active" : ""}`}
+            aria-label="Co-issue uniforms"
+          >
+            <NavIcons.issue />
+          </Link>
+          <Link
+            href="/supplier/deliveries"
+            className={`mobile-dock-link ${isActive(pathname, "/supplier/deliveries") ? "is-active" : ""}`}
+          >
+            <NavIcons.deliveries />
+            <span>Deliveries</span>
+          </Link>
           <button
             type="button"
-            className="mobile-dock-link"
+            className={`mobile-dock-link ${
+              mobileMore || moreLinks.some((l) => isActive(pathname, l.href))
+                ? "is-active"
+                : ""
+            }`}
             onClick={() => setMobileMore(true)}
+            aria-expanded={mobileMore}
           >
+            <NavIcons.more />
             <span>More</span>
           </button>
         </div>
@@ -220,37 +381,48 @@ export function SupplierNav({
             aria-label="Close menu"
             onClick={() => setMobileMore(false)}
           />
-          <div className="mobile-sheet-panel animate-rise">
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <div className="font-display text-lg font-bold">Supply menu</div>
-                <div className="text-xs text-[var(--muted)]">
+          <div
+            className="mobile-sheet-panel animate-rise"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Supply menu"
+          >
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-base font-semibold">Supply menu</div>
+                <div className="truncate text-xs text-[var(--muted)]">
                   {user.supplierName}
                 </div>
               </div>
               <button
                 type="button"
-                className="nav-icon-btn"
+                className="btn btn-ghost"
                 onClick={() => setMobileMore(false)}
               >
                 Close
               </button>
             </div>
-            {[...primary, ...navLinks].map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="nav-menu-item"
-                onClick={() => setMobileMore(false)}
-              >
-                <span>
-                  <span className="block font-semibold">{link.label}</span>
-                  <span className="block text-xs text-[var(--muted)]">
-                    {link.desc}
+            {[...primary, ...moreLinks].map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="nav-menu-item"
+                  onClick={() => setMobileMore(false)}
+                >
+                  <span className="nav-menu-icon">
+                    <Icon />
                   </span>
-                </span>
-              </Link>
-            ))}
+                  <span>
+                    <span className="block font-semibold">{link.label}</span>
+                    <span className="block text-xs text-[var(--muted)]">
+                      {link.desc}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
             <div className="nav-menu-divider" />
             <form action={logoutAction}>
               <button type="submit" className="btn btn-ghost w-full">
@@ -261,24 +433,5 @@ export function SupplierNav({
         </div>
       )}
     </>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M6 9a6 6 0 1 1 12 0c0 3.5 1.5 5 2 6H4c.5-1 2-2.5 2-6Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10 19a2 2 0 0 0 4 0"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }

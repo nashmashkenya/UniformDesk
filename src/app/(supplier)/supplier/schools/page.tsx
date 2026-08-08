@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { format } from "date-fns";
-import { LinkSchoolForm } from "@/components/branding-form";
+import {
+  CreateSchoolForm,
+  LinkSchoolForm,
+} from "@/components/branding-form";
 import { StatusPill } from "@/components/status-pill";
 import { requireSupplierUser } from "@/lib/auth";
 import { listSchoolPortfolio } from "@/modules/supply/portfolio";
@@ -15,24 +18,41 @@ export default async function SupplierSchoolsPage() {
       <section>
         <h1 className="page-title">Schools</h1>
         <p className="page-sub">
-          Multi-school supply portfolio — open work per campus.
+          Create senior schools, link them, then co-issue and supply uniforms.
         </p>
       </section>
 
       {canLink && (
-        <section className="card">
-          <div className="card-header">
-            <div>
-              <h2 className="card-title text-base">Link a school</h2>
-              <p className="card-subtitle">
-                Use the school&apos;s UniformDesk code (e.g. GFS, RVA)
-              </p>
+        <>
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title text-base">Create a school</h2>
+                <p className="card-subtitle">
+                  New school code, auto-linked to you, with a school reporter
+                  login
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="card-body">
-            <LinkSchoolForm />
-          </div>
-        </section>
+            <div className="card-body">
+              <CreateSchoolForm />
+            </div>
+          </section>
+
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title text-base">Link an existing school</h2>
+                <p className="card-subtitle">
+                  Use a code that already exists (e.g. GFS, RVA)
+                </p>
+              </div>
+            </div>
+            <div className="card-body">
+              <LinkSchoolForm />
+            </div>
+          </section>
+        </>
       )}
 
       <section className="grid gap-3 lg:grid-cols-2">
@@ -81,6 +101,12 @@ export default async function SupplierSchoolsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
+                <Link
+                  href={`/supplier/issue?schoolId=${row.school.id}`}
+                  className="btn btn-primary"
+                >
+                  Co-issue
+                </Link>
                 <Link
                   href={`/supplier/orders?schoolId=${row.school.id}`}
                   className="btn btn-ghost"

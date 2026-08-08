@@ -43,6 +43,8 @@ Do **not** seed demo passwords in production.
 
 - [ ] CI green on `main`
 - [ ] Staging smoke: login → issue → void → receive DN → invoice → mark paid → open `/v/[token]`
+- [ ] Print smoke: school `/reports` + `/stock` + supplier `/supplier/reports` (Print report) and a DN/invoice
+- [ ] Train campus/supplier staff using [`DESK_GUIDE.md`](./DESK_GUIDE.md)
 - [ ] Database backup + restore drill
 - [ ] Error monitoring (e.g. Sentry) and uptime on `/login`
 - [ ] Demo accounts disabled / passwords rotated

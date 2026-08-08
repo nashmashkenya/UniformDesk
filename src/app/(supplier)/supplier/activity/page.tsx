@@ -12,6 +12,7 @@ const kindLabel: Record<SupplierActivityKind, string> = {
   delivery_delivered: "Delivered",
   invoice_issued: "Invoice",
   payment_confirmed: "Paid",
+  co_issue: "Co-issue",
 };
 
 const kindTone: Record<SupplierActivityKind, string> = {
@@ -21,6 +22,7 @@ const kindTone: Record<SupplierActivityKind, string> = {
   delivery_delivered: "chip chip-ok",
   invoice_issued: "chip chip-warn",
   payment_confirmed: "chip chip-ok",
+  co_issue: "chip chip-accent",
 };
 
 export default async function SupplierActivityPage() {
@@ -33,8 +35,8 @@ export default async function SupplierActivityPage() {
         <div className="page-header-main">
           <h1 className="page-title">Activity</h1>
           <p className="page-sub">
-            Supply timeline — orders, pack/dispatch, invoices, and payment
-            confirmations with correlation IDs.
+            Supply timeline — orders, pack/dispatch, co-issue at schools,
+            invoices, and payment confirmations.
           </p>
         </div>
         <span className="chip">{events.length}</span>

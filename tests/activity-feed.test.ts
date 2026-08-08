@@ -8,7 +8,7 @@ import {
 } from "@/modules/reports/activity";
 import { createDelivery, dispatchDelivery } from "@/modules/supply/deliveries";
 import { createInvoiceFromDelivery } from "@/modules/supply/invoices";
-import { fakeSignature, seedSchoolDesk, seedSupplyChain } from "./helpers/fixtures";
+import { seedSchoolDesk, seedSupplyChain } from "./helpers/fixtures";
 
 describe("school activity feed", () => {
   it("includes issue and adjust events with correlation ids", async () => {
@@ -18,8 +18,7 @@ describe("school activity feed", () => {
       schoolId: desk.school.id,
       actorUserId: desk.user.id,
       studentId: desk.student.id,
-      acknowledgmentName: "Parent",
-      acknowledgmentSignature: fakeSignature(),
+      paymentMethod: "cash",
       lines: [
         { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 2 },
       ],

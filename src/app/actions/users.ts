@@ -11,7 +11,7 @@ export type UserState = { error?: string; ok?: boolean };
 const createSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(["school_admin", "storekeeper", "auditor"]),
+  role: z.enum(["school_reporter"]),
   password: z.string().min(8),
 });
 

@@ -19,50 +19,67 @@ export function RecordPaymentForm({
   const [state, action, pending] = useActionState(recordPaymentAction, initial);
 
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="form-stack">
       <input type="hidden" name="invoiceId" value={invoiceId} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          Method
-          <select name="method" defaultValue="cash" className="field mt-1.5">
+      <div className="form-grid cols-2">
+        <div className="field-group">
+          <label className="field-label" htmlFor="pay-method">
+            Method
+          </label>
+          <select
+            id="pay-method"
+            name="method"
+            defaultValue="cash"
+            className="field"
+          >
             <option value="cash">Cash</option>
             <option value="bank">Bank transfer</option>
             <option value="other">Other</option>
           </select>
-        </label>
-        <label className="block text-sm font-medium">
-          Amount (KES)
+        </div>
+        <div className="field-group">
+          <label className="field-label" htmlFor="pay-amount">
+            Amount (KES)
+          </label>
           <input
+            id="pay-amount"
             name="amount"
             type="number"
             min={1}
             step="1"
             defaultValue={remainingKes}
-            className="field mt-1.5"
+            className="field"
           />
-        </label>
+        </div>
       </div>
-      <label className="block text-sm font-medium">
-        Reference
+      <div className="field-group">
+        <label className="field-label" htmlFor="pay-reference">
+          Reference
+        </label>
         <input
+          id="pay-reference"
           name="reference"
           placeholder="Receipt / bank ref"
-          className="field mt-1.5"
+          className="field"
         />
-      </label>
-      <label className="block text-sm font-medium">
-        Note
-        <input name="note" className="field mt-1.5" />
-      </label>
+      </div>
+      <div className="field-group">
+        <label className="field-label" htmlFor="pay-note">
+          Note
+        </label>
+        <input id="pay-note" name="note" className="field" />
+      </div>
       {state.error && (
-        <p className="text-sm text-[var(--danger)]">{state.error}</p>
+        <p className="field-error" role="alert">
+          {state.error}
+        </p>
       )}
-      {state.message && (
-        <p className="text-sm text-[var(--ok)]">{state.message}</p>
-      )}
-      <button type="submit" disabled={pending} className="btn btn-primary">
-        {pending ? "Saving…" : "Record payment"}
-      </button>
+      {state.message && <p className="field-ok">{state.message}</p>}
+      <div>
+        <button type="submit" disabled={pending} className="btn btn-primary">
+          {pending ? "Saving…" : "Record payment"}
+        </button>
+      </div>
     </form>
   );
 }
@@ -71,41 +88,49 @@ export function MpesaPaymentForm({ invoiceId }: { invoiceId: string }) {
   const [state, action, pending] = useActionState(initiateMpesaAction, initial);
 
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="form-stack">
       <input type="hidden" name="invoiceId" value={invoiceId} />
-      <label className="block text-sm font-medium">
-        Payer phone
+      <div className="field-group">
+        <label className="field-label" htmlFor="mpesa-phone">
+          Payer phone
+        </label>
         <input
+          id="mpesa-phone"
           name="phone"
           required
           placeholder="07XXXXXXXX"
-          className="field mt-1.5"
+          className="field"
+          inputMode="tel"
         />
-      </label>
-      <label className="block text-sm font-medium">
-        Note
-        <input name="note" className="field mt-1.5" />
-      </label>
+      </div>
+      <div className="field-group">
+        <label className="field-label" htmlFor="mpesa-note">
+          Note
+        </label>
+        <input id="mpesa-note" name="note" className="field" />
+      </div>
       {state.error && (
-        <p className="text-sm text-[var(--danger)]">{state.error}</p>
+        <p className="field-error" role="alert">
+          {state.error}
+        </p>
       )}
-      {state.message && (
-        <p className="text-sm text-[var(--ok)]">{state.message}</p>
-      )}
+      {state.message && <p className="field-ok">{state.message}</p>}
       {state.sandboxCompleteUrl && (
-        <p className="text-sm">
+        <p className="field-hint">
           Sandbox ·{" "}
           <a
             href={state.sandboxCompleteUrl}
             className="font-semibold text-[var(--accent)] underline"
           >
-            Simulate successful STK callback
+            Complete STK callback
           </a>
         </p>
       )}
-      <button type="submit" disabled={pending} className="btn btn-primary">
-        {pending ? "Starting…" : "Send M-Pesa STK (sandbox)"}
-      </button>
+      <div>
+        <button type="submit" disabled={pending} className="btn btn-primary">
+          {pending ? "Sending…" : "Send M-Pesa prompt"}
+        </button>
+      </div>
     </form>
   );
 }

@@ -18,6 +18,8 @@ export function IssueDeskShell({
   kits,
   items,
   balances,
+  slipPathPrefix = "/slips",
+  coIssue = false,
 }: {
   schoolId: string;
   schoolName: string;
@@ -25,6 +27,8 @@ export function IssueDeskShell({
   kits: IssueDeskKit[];
   items: IssueDeskItem[];
   balances: IssueDeskBalance[];
+  slipPathPrefix?: string;
+  coIssue?: boolean;
 }) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -43,6 +47,12 @@ export function IssueDeskShell({
 
   return (
     <>
+      {coIssue && (
+        <p className="card-inset no-print text-sm">
+          Co-issue at <strong>{schoolName}</strong> — using school stock and
+          roster. Slip stays on the school record; you are recorded as issuer.
+        </p>
+      )}
       {savedAt && (
         <p className="no-print text-xs text-[var(--muted)]">
           Offline cache ready · roster saved{" "}
@@ -55,6 +65,7 @@ export function IssueDeskShell({
         kits={kits}
         items={items}
         balances={balances}
+        slipPathPrefix={slipPathPrefix}
       />
     </>
   );

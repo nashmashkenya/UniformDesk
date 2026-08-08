@@ -51,32 +51,32 @@ export function DeliveryNoteSheet({
         <div className="text-right text-sm">
           <div className="font-semibold">{fromName}</div>
           {fromSub && <div className="text-[var(--muted)]">{fromSub}</div>}
-          <div className="mt-2 text-xs text-[var(--muted)]">
-            Created {format(createdAt, "dd MMM yyyy HH:mm")}
+          <div className="mt-1 text-xs text-[var(--muted)]">
+            Created {format(createdAt, "dd MMM yy HH:mm")}
           </div>
         </div>
       </div>
 
-      <div className="card-body space-y-4">
-        <div className="grid gap-3 text-sm sm:grid-cols-2">
+      <div className="card-body space-y-3">
+        <div className="grid gap-2 text-sm sm:grid-cols-2">
           <div className="card-inset">
             <div className="section-label">Ship to</div>
-            <div className="mt-1 font-semibold">{toName}</div>
+            <div className="mt-0.5 font-semibold">{toName}</div>
             {toSub && <div className="text-[var(--muted)]">{toSub}</div>}
           </div>
           <div className="card-inset">
             <div className="section-label">References</div>
-            <div className="mt-1">
+            <div className="mt-0.5">
               {orderNo ? `Order ${orderNo}` : "No linked order"}
             </div>
             {dispatchedAt && (
               <div className="text-[var(--muted)]">
-                Dispatched {format(dispatchedAt, "dd MMM yyyy HH:mm")}
+                Dispatched {format(dispatchedAt, "dd MMM yy HH:mm")}
               </div>
             )}
             {deliveredAt && (
               <div className="text-[var(--muted)]">
-                Delivered {format(deliveredAt, "dd MMM yyyy HH:mm")}
+                Delivered {format(deliveredAt, "dd MMM yy HH:mm")}
               </div>
             )}
           </div>
@@ -109,7 +109,7 @@ export function DeliveryNoteSheet({
           </table>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-3 text-sm">
+        <div className="flex flex-wrap items-end justify-between gap-2 text-sm">
           <div className="text-[var(--muted)]">
             {note ? `Note: ${note}` : "No delivery note"}
           </div>
@@ -119,15 +119,15 @@ export function DeliveryNoteSheet({
           </div>
         </div>
 
-        <div className="grid gap-6 pt-4 text-sm sm:grid-cols-2 print:grid-cols-2">
+        <div className="grid gap-4 pt-2 text-sm sm:grid-cols-2 print:grid-cols-2">
           <div>
             <div className="section-label">Supplier sign</div>
-            <div className="mt-8 border-b border-[var(--line)]" />
+            <div className="mt-6 border-b border-[var(--line)]" />
             <div className="mt-1 text-xs text-[var(--muted)]">Name / date</div>
           </div>
           <div>
             <div className="section-label">School receive sign</div>
-            <div className="mt-8 border-b border-[var(--line)]" />
+            <div className="mt-6 border-b border-[var(--line)]" />
             <div className="mt-1 text-xs text-[var(--muted)]">Name / date</div>
           </div>
         </div>
