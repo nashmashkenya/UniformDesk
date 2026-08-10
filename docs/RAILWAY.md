@@ -30,12 +30,16 @@ On the **web** service → **Variables**:
 
 `railway.toml` already sets:
 
-- **Build:** `npx prisma generate && npx prisma migrate deploy && npm run build`  
-  (Nixpacks installs deps first — do **not** add `npm ci` here or builds can fail with `EBUSY` on `node_modules/.cache`)
-- **Start:** `npm run start`
+- **Build:** `npx prisma generate && npm run build`  
+  (Nixpacks installs deps first — do **not** add `npm ci` here)
+- **Start:** `npx prisma migrate deploy && npm run start`  
+  (migrations run at boot so `DATABASE_URL` is available)
 - **Health check:** `/login`
 
-If the Railway UI has a custom build command, match the same string (or clear it so `railway.toml` wins). Railway injects `PORT`; Next.js uses it automatically.
+Leave Custom Build / Start **empty** in the Railway UI so `railway.toml` is used.
+
+**Important:** On the web service Variables, `DATABASE_URL` must reference the Postgres plugin.  
+If you later move migrate back into the build step, enable **Available at Build Time** for `DATABASE_URL`.
 
 ## 5. Public domain
 
