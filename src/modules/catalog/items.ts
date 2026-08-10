@@ -166,3 +166,43 @@ export async function setItemActive(input: {
     data: { active: input.active },
   });
 }
+
+export async function updateItem(input: {
+  schoolId: string;
+  itemId: string;
+  sku: string;
+  name: string;
+  category: string;
+}) {
+  const item = await prisma.item.findFirst({
+    where: { id: input.itemId, schoolId: input.schoolId },
+  });
+  if (!item) throw new Error("Item not found");
+
+  const sku = input.sku.trim().toUpperCase();
+  const name = input.name.trim();
+  const category = input.category.trim() || "other";
+  if (!sku || !name) throw new Error("SKU and name are required");
+
+  if (sku !== item.sku) {
+    const clash = await prisma.item.findFirst({
+      where: {
+        schoolId: input.schoolId,
+        sku,
+        NOT: { id: item.id },
+      },
+      select: { id: true },
+    });
+    if (clash) throw new Error("Another item already uses this SKU");
+  }
+
+  try {
+    return await prisma.item.update({
+      where: { id: item.id },
+      data: { sku, name, category },
+      include: { sizes: { orderBy: { sizeLabel: "asc" } } },
+    });
+  } catch {
+    throw new Error("Could not update item");
+  }
+}

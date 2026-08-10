@@ -293,13 +293,16 @@ Each school has its **own** items and kits.
 2. Under **Add from products**, tick the products this school uses
 3. Click **Add … to school** — SKU, name, and sizes copy from Products
 4. Products already on the school are hidden from the list
-5. Add extra sizes later on an item, or use **Add a custom item** only if you need a school-only SKU
+5. To change an item later: open **Edit item** on the card → update SKU / name / category → **Save item**
+6. Add extra sizes with **Add size**, or use **Add a custom item** only for a school-only SKU
 
 ### Kits (admission sets)
 
 1. Open the **Kits** tab
 2. Name the kit (e.g. `Form 1 Girls`), set academic year
 3. Add lines: **select** a school item (dropdown) + default quantity → save
+4. To change a kit later: open **Edit kit** on the card → change name, year, or lines → **Save kit**
+5. Use **Deactivate** if the kit should no longer appear on Issue
 
 Kits are what the co-issue desk loads quickly for a new student.
 

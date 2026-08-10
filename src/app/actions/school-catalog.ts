@@ -8,8 +8,9 @@ import {
   createItem,
   publishProductsToSchool,
   setItemActive,
+  updateItem,
 } from "@/modules/catalog/items";
-import { createKit, setKitActive } from "@/modules/catalog/kits";
+import { createKit, setKitActive, updateKit } from "@/modules/catalog/kits";
 import { assertSupplierSchoolLink } from "@/modules/supply/orders";
 
 export type SchoolCatalogState = {
@@ -126,6 +127,29 @@ export async function toggleSchoolItemActiveAction(formData: FormData) {
   revalidateSchoolCatalog(schoolId);
 }
 
+export async function updateSchoolItemAction(
+  _prev: SchoolCatalogState,
+  formData: FormData,
+): Promise<SchoolCatalogState> {
+  const schoolId = String(formData.get("schoolId") ?? "");
+  try {
+    await requireLinkedSupplierSchool(schoolId);
+    await updateItem({
+      schoolId,
+      itemId: String(formData.get("itemId") ?? ""),
+      sku: String(formData.get("sku") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      category: String(formData.get("category") ?? "other"),
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not update item",
+    };
+  }
+  revalidateSchoolCatalog(schoolId);
+  return { ok: true, message: "Item updated" };
+}
+
 const kitLineSchema = z.object({
   itemId: z.string().min(1),
   qtyDefault: z.coerce.number().int().positive(),
@@ -163,4 +187,29 @@ export async function toggleSchoolKitActiveAction(formData: FormData) {
   const active = String(formData.get("active") ?? "") === "true";
   await setKitActive({ schoolId, kitId, active });
   revalidateSchoolCatalog(schoolId);
+}
+
+export async function updateSchoolKitAction(
+  _prev: SchoolCatalogState,
+  formData: FormData,
+): Promise<SchoolCatalogState> {
+  const schoolId = String(formData.get("schoolId") ?? "");
+  try {
+    await requireLinkedSupplierSchool(schoolId);
+    const raw = String(formData.get("linesJson") ?? "[]");
+    const lines = z.array(kitLineSchema).parse(JSON.parse(raw));
+    await updateKit({
+      schoolId,
+      kitId: String(formData.get("kitId") ?? ""),
+      name: String(formData.get("name") ?? ""),
+      academicYear: String(formData.get("academicYear") ?? ""),
+      lines,
+    });
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Could not update kit",
+    };
+  }
+  revalidateSchoolCatalog(schoolId);
+  return { ok: true, message: "Kit updated" };
 }

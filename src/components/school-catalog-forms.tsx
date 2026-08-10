@@ -7,6 +7,8 @@ import {
   createSchoolItemAction,
   createSchoolKitAction,
   publishProductsToSchoolAction,
+  updateSchoolItemAction,
+  updateSchoolKitAction,
   type SchoolCatalogState,
 } from "@/app/actions/school-catalog";
 
@@ -319,6 +321,104 @@ export function SchoolAddSizeForm({
   );
 }
 
+export function SchoolEditItemForm({
+  schoolId,
+  item,
+}: {
+  schoolId: string;
+  item: {
+    id: string;
+    sku: string;
+    name: string;
+    category: string;
+  };
+}) {
+  const [state, action, pending] = useActionState(
+    updateSchoolItemAction,
+    initial,
+  );
+
+  return (
+    <details className="mt-3 border-t border-[var(--line)] pt-3">
+      <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">
+        Edit item
+      </summary>
+      <form action={action} className="form-stack mt-3">
+        <input type="hidden" name="schoolId" value={schoolId} />
+        <input type="hidden" name="itemId" value={item.id} />
+        <div className="form-grid cols-2">
+          <div className="field-group">
+            <label className="field-label" htmlFor={`edit-sku-${item.id}`}>
+              SKU
+            </label>
+            <input
+              id={`edit-sku-${item.id}`}
+              name="sku"
+              required
+              defaultValue={item.sku}
+              className="field"
+            />
+            <p className="field-hint">
+              Keep aligned with Products for stock post
+            </p>
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor={`edit-name-${item.id}`}>
+              Name
+            </label>
+            <input
+              id={`edit-name-${item.id}`}
+              name="name"
+              required
+              defaultValue={item.name}
+              className="field"
+            />
+          </div>
+          <div className="field-group">
+            <label
+              className="field-label"
+              htmlFor={`edit-category-${item.id}`}
+            >
+              Category
+            </label>
+            <select
+              id={`edit-category-${item.id}`}
+              name="category"
+              className="field"
+              defaultValue={
+                categories.includes(
+                  item.category as (typeof categories)[number],
+                )
+                  ? item.category
+                  : "other"
+              }
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {state.error && (
+          <p className="field-error" role="alert">
+            {state.error}
+          </p>
+        )}
+        {state.ok && (
+          <p className="field-ok">{state.message ?? "Item updated."}</p>
+        )}
+        <div className="form-actions">
+          <button type="submit" disabled={pending} className="btn btn-secondary">
+            {pending ? "Saving…" : "Save item"}
+          </button>
+        </div>
+      </form>
+    </details>
+  );
+}
+
 type KitItem = {
   id: string;
   name: string;
@@ -334,28 +434,42 @@ type KitLine = {
 export function SchoolKitForm({
   schoolId,
   items,
+  kit,
 }: {
   schoolId: string;
   items: KitItem[];
+  kit?: {
+    id: string;
+    name: string;
+    academicYear: string;
+    lines: KitLine[];
+  };
 }) {
-  const activeItems = items.filter((item) => item.active);
+  const editing = Boolean(kit);
+  const kitItemIds = new Set(kit?.lines.map((l) => l.itemId) ?? []);
+  const activeItems = items.filter(
+    (item) => item.active || kitItemIds.has(item.id),
+  );
   const [state, action, pending] = useActionState(
-    createSchoolKitAction,
+    editing ? updateSchoolKitAction : createSchoolKitAction,
     initial,
   );
   const formRef = useRef<HTMLFormElement>(null);
+  const fieldPrefix = kit?.id ?? "new";
   const [lines, setLines] = useState<KitLine[]>(
-    activeItems[0]
-      ? [{ itemId: activeItems[0].id, qtyDefault: 1 }]
-      : [],
+    kit?.lines.length
+      ? kit.lines
+      : activeItems[0]
+        ? [{ itemId: activeItems[0].id, qtyDefault: 1 }]
+        : [],
   );
 
   useEffect(() => {
-    if (!state.ok) return;
+    if (!state.ok || editing) return;
     formRef.current?.reset();
     const firstId = activeItems[0]?.id;
     setLines(firstId ? [{ itemId: firstId, qtyDefault: 1 }] : []);
-  }, [state.ok]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.ok, editing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function updateLine(index: number, patch: Partial<KitLine>) {
     setLines((prev) =>
@@ -363,40 +477,54 @@ export function SchoolKitForm({
     );
   }
 
-  return (
+  const formBody = (
     <form ref={formRef} action={action} className="form-stack form-flush">
       <input type="hidden" name="schoolId" value={schoolId} />
+      {kit ? <input type="hidden" name="kitId" value={kit.id} /> : null}
       <input type="hidden" name="linesJson" value={JSON.stringify(lines)} />
 
       <div className="form-section">
         <div className="form-section-head">
-          <h3 className="form-section-title">Kit details</h3>
+          <h3 className="form-section-title">
+            {editing ? "Edit kit" : "Kit details"}
+          </h3>
           <p className="form-section-sub">
-            Name the admission set for this campus and year
+            {editing
+              ? "Update name, year, and lines for this admission set"
+              : "Name the admission set for this campus and year"}
           </p>
         </div>
         <div className="form-grid cols-2">
           <div className="field-group">
-            <label className="field-label" htmlFor="school-kit-name">
+            <label
+              className="field-label"
+              htmlFor={`school-kit-name-${fieldPrefix}`}
+            >
               Kit name
             </label>
             <input
-              id="school-kit-name"
+              id={`school-kit-name-${fieldPrefix}`}
               name="name"
               required
               placeholder="Form 1 Girls / Form 1 Boys"
               className="field"
+              defaultValue={kit?.name}
             />
           </div>
           <div className="field-group">
-            <label className="field-label" htmlFor="school-kit-year">
+            <label
+              className="field-label"
+              htmlFor={`school-kit-year-${fieldPrefix}`}
+            >
               Academic year
             </label>
             <input
-              id="school-kit-year"
+              id={`school-kit-year-${fieldPrefix}`}
               name="academicYear"
               required
-              defaultValue={String(new Date().getFullYear())}
+              defaultValue={
+                kit?.academicYear ?? String(new Date().getFullYear())
+              }
               className="field"
             />
           </div>
@@ -421,12 +549,12 @@ export function SchoolKitForm({
                   <div className="field-group">
                     <label
                       className="field-label"
-                      htmlFor={`kit-item-${index}`}
+                      htmlFor={`kit-item-${fieldPrefix}-${index}`}
                     >
                       Item
                     </label>
                     <select
-                      id={`kit-item-${index}`}
+                      id={`kit-item-${fieldPrefix}-${index}`}
                       value={line.itemId}
                       onChange={(e) =>
                         updateLine(index, { itemId: e.target.value })
@@ -441,11 +569,14 @@ export function SchoolKitForm({
                     </select>
                   </div>
                   <div className="field-group">
-                    <label className="field-label" htmlFor={`kit-qty-${index}`}>
+                    <label
+                      className="field-label"
+                      htmlFor={`kit-qty-${fieldPrefix}-${index}`}
+                    >
                       Qty
                     </label>
                     <input
-                      id={`kit-qty-${index}`}
+                      id={`kit-qty-${fieldPrefix}-${index}`}
                       type="number"
                       min={1}
                       inputMode="numeric"
@@ -499,7 +630,13 @@ export function SchoolKitForm({
           {state.error}
         </p>
       )}
-      {state.ok && <p className="field-ok">Kit created for this school.</p>}
+      {state.ok && (
+        <p className="field-ok">
+          {editing
+            ? (state.message ?? "Kit updated.")
+            : "Kit created for this school."}
+        </p>
+      )}
 
       <div className="form-actions">
         <button
@@ -507,9 +644,20 @@ export function SchoolKitForm({
           disabled={pending || !activeItems.length || !lines.length}
           className="btn btn-primary"
         >
-          {pending ? "Saving…" : "Create kit"}
+          {pending ? "Saving…" : editing ? "Save kit" : "Create kit"}
         </button>
       </div>
     </form>
+  );
+
+  if (!editing) return formBody;
+
+  return (
+    <details className="mt-3 border-t border-[var(--line)] pt-3">
+      <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">
+        Edit kit
+      </summary>
+      <div className="mt-3">{formBody}</div>
+    </details>
   );
 }

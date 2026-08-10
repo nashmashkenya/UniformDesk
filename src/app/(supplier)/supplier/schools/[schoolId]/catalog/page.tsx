@@ -7,6 +7,7 @@ import {
 import {
   SchoolAddSizeForm,
   SchoolCatalogItemForm,
+  SchoolEditItemForm,
   SchoolKitForm,
 } from "@/components/school-catalog-forms";
 import { canSupplierManage } from "@/lib/auth";
@@ -199,13 +200,26 @@ export default async function SupplierSchoolCatalogPage({
                       </form>
                     )}
                   </div>
-                  {writable && item.active && (
-                    <div className="mt-3 border-t border-[var(--line)] pt-3">
-                      <SchoolAddSizeForm
+                  {writable && (
+                    <>
+                      <SchoolEditItemForm
                         schoolId={school.id}
-                        itemId={item.id}
+                        item={{
+                          id: item.id,
+                          sku: item.sku,
+                          name: item.name,
+                          category: item.category,
+                        }}
                       />
-                    </div>
+                      {item.active && (
+                        <div className="mt-3 border-t border-[var(--line)] pt-3">
+                          <SchoolAddSizeForm
+                            schoolId={school.id}
+                            itemId={item.id}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </article>
               ))}
@@ -289,6 +303,21 @@ export default async function SupplierSchoolCatalogPage({
                       </form>
                     )}
                   </div>
+                  {writable && activeItems.length > 0 && (
+                    <SchoolKitForm
+                      schoolId={school.id}
+                      items={items}
+                      kit={{
+                        id: kit.id,
+                        name: kit.name,
+                        academicYear: kit.academicYear,
+                        lines: kit.lines.map((line) => ({
+                          itemId: line.itemId,
+                          qtyDefault: line.qtyDefault,
+                        })),
+                      }}
+                    />
+                  )}
                 </article>
               ))}
             </div>
