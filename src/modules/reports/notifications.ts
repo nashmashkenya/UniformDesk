@@ -87,7 +87,7 @@ export async function listSupplierNotifications(
 ): Promise<DeskNotice[]> {
   const take = opts?.take ?? 12;
 
-  const [invoices, packed, orders] = await Promise.all([
+  const [invoices, awaitingStockPost, orders] = await Promise.all([
     prisma.invoice.findMany({
       where: { supplierId, status: "issued" },
       include: { school: { select: { name: true, code: true } } },
@@ -95,7 +95,11 @@ export async function listSupplierNotifications(
       take,
     }),
     prisma.delivery.findMany({
-      where: { supplierId, status: "packed" },
+      where: {
+        supplierId,
+        status: { in: ["packed", "in_transit"] },
+        receipt: null,
+      },
       include: { school: { select: { name: true, code: true } } },
       orderBy: { createdAt: "asc" },
       take,
@@ -113,13 +117,13 @@ export async function listSupplierNotifications(
 
   const notices: DeskNotice[] = [];
 
-  for (const d of packed) {
+  for (const d of awaitingStockPost) {
     notices.push({
       id: `delivery:${d.id}`,
       kind: "delivery_dispatch",
       severity: "accent",
-      title: `Dispatch ${d.deliveryNo}`,
-      detail: `${d.school.name} · packed`,
+      title: `Post stock ${d.deliveryNo}`,
+      detail: `${d.school.name} · ${d.status.replaceAll("_", " ")}`,
       href: `/supplier/deliveries/${d.id}`,
     });
   }

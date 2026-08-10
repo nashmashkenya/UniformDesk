@@ -54,6 +54,42 @@ describe("supply receive + payment invariants", () => {
     expect(receipt).toBeTruthy();
   });
 
+  it("supplier admin actor can post DN lines to campus stock", async () => {
+    const chain = await seedSupplyChain();
+    const delivery = await createDelivery({
+      supplierId: chain.supplier.id,
+      schoolId: chain.school.id,
+      actorUserId: chain.supplierUser.id,
+      lines: [
+        { productId: chain.product.id, sizeLabel: "M", qty: 3 },
+      ],
+    });
+
+    await receiveAgainstDelivery({
+      schoolId: chain.school.id,
+      actorUserId: chain.supplierUser.id,
+      deliveryId: delivery.id,
+      note: "Supplier posted to campus",
+    });
+
+    const balance = await prisma.stockBalance.findUniqueOrThrow({
+      where: {
+        schoolId_itemId_sizeLabel: {
+          schoolId: chain.school.id,
+          itemId: chain.item.id,
+          sizeLabel: "M",
+        },
+      },
+    });
+    expect(balance.qtyOnHand).toBe(8);
+
+    const receipt = await prisma.inboundReceipt.findFirstOrThrow({
+      where: { deliveryId: delivery.id },
+    });
+    expect(receipt.receivedById).toBe(chain.supplierUser.id);
+    expect(receipt.note).toMatch(/Supplier posted/i);
+  });
+
   it("rejects double receive on the same delivery", async () => {
     const chain = await seedSupplyChain();
     const delivery = await createDelivery({

@@ -118,7 +118,7 @@ export async function dispatchDelivery(input: {
   });
   if (!delivery) throw new Error("Delivery not found");
   if (delivery.status === "delivered") {
-    throw new Error("Delivery already received by school");
+    throw new Error("Delivery already received");
   }
   if (delivery.status === "cancelled") {
     throw new Error("Delivery is cancelled");

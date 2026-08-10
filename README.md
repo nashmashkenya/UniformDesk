@@ -4,7 +4,7 @@
 
 Phase 1 is **supplier-operated**: `supplier_admin` (super user) and `supplier_staff` (issue desk). Schools are campus data sites — school operational login is closed; follow-up reports come later.
 
-**Docs:** [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (day-to-day ops) · [`docs/RAILWAY.md`](./docs/RAILWAY.md) (deploy) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/)
+**Docs:** [`docs/ADMIN_USER_MANUAL.md`](./docs/ADMIN_USER_MANUAL.md) (admin) · [`docs/STAFF_USER_MANUAL.md`](./docs/STAFF_USER_MANUAL.md) (staff / issue desk) · [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (ops reference) · [`docs/RAILWAY.md`](./docs/RAILWAY.md) (deploy) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/)
 
 ## Stack
 

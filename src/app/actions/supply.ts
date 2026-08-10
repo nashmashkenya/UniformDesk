@@ -13,6 +13,7 @@ import {
 import {
   createDelivery,
   dispatchDelivery,
+  getDelivery,
   receiveAgainstDelivery,
 } from "@/modules/supply/deliveries";
 import {
@@ -179,6 +180,57 @@ export async function receiveDeliveryAction(
   revalidatePath("/stock");
   revalidatePath("/");
   redirect(`/deliveries/${deliveryId}`);
+}
+
+/** Phase 1: supplier admin posts DN lines onto the campus stock ledger. */
+export async function postDeliveryToCampusStockAction(
+  _prev: SupplyState,
+  formData: FormData,
+): Promise<SupplyState> {
+  const deliveryId = String(formData.get("deliveryId") ?? "");
+  try {
+    const user = await requireSupplierUser();
+    if (!canSupplierManage(user.role)) {
+      return { error: "Only supplier admins can post campus stock" };
+    }
+
+    const delivery = await getDelivery(deliveryId);
+    if (!delivery || delivery.supplierId !== user.supplierId) {
+      return { error: "Delivery not found" };
+    }
+    if (delivery.status === "cancelled") {
+      return { error: "Cannot post a cancelled delivery" };
+    }
+    if (delivery.status === "delivered" || delivery.receipt) {
+      return { error: "Delivery already posted to campus stock" };
+    }
+
+    const noteRaw = String(formData.get("note") ?? "").trim();
+    await receiveAgainstDelivery({
+      schoolId: delivery.schoolId,
+      actorUserId: user.id,
+      deliveryId,
+      note:
+        noteRaw ||
+        `Posted to campus stock by supplier (${user.name}) · ${delivery.deliveryNo}`,
+    });
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not post delivery to campus stock",
+    };
+  }
+
+  revalidatePath("/supplier/deliveries");
+  revalidatePath(`/supplier/deliveries/${deliveryId}`);
+  revalidatePath("/supplier/reports");
+  revalidatePath("/supplier");
+  revalidatePath("/deliveries");
+  revalidatePath(`/deliveries/${deliveryId}`);
+  revalidatePath("/stock");
+  redirect(`/supplier/deliveries/${deliveryId}`);
 }
 
 export async function createInvoiceAction(formData: FormData) {

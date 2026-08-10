@@ -227,7 +227,7 @@ export function SupplyDeliveryForm({
           <span>
             <span className="field-check-title">Mark as in transit</span>
             <span className="field-check-sub">
-              Ready for campus receive as soon as packed
+              Ready to post to campus stock from the DN
             </span>
           </span>
         </label>

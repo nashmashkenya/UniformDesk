@@ -2,8 +2,12 @@
 
 Day-to-day operations for **supplier admin** and **supplier staff**. For go-live / Postgres, see [`PRODUCTION.md`](./PRODUCTION.md). For the analyst PPT, see [`presentation/README.md`](./presentation/README.md).
 
+**Admin user manual (start here):** [`ADMIN_USER_MANUAL.md`](./ADMIN_USER_MANUAL.md) — full supplier admin guide from first setup to daily ops.  
+**Admin manual PDF:** [`UniformDesk_Admin_User_Manual.pdf`](./UniformDesk_Admin_User_Manual.pdf) — rebuild with `python docs/build-admin-manual-pdf.py`.  
+**Staff user manual:** [`STAFF_USER_MANUAL.md`](./STAFF_USER_MANUAL.md) — issue desk guide for supplier staff.  
+**Staff manual PDF:** [`UniformDesk_Staff_User_Manual.pdf`](./UniformDesk_Staff_User_Manual.pdf) — rebuild with `python docs/build-staff-manual-pdf.py`.  
 **Supplier meeting walkthrough:** [`SUPPLIER_DEMO.md`](./SUPPLIER_DEMO.md) (live demo script + logins).  
-**Downloadable PDF:** [`UniformDesk_Supplier_Guide.pdf`](./UniformDesk_Supplier_Guide.pdf) — rebuild with `python docs/build-supplier-guide-pdf.py`.
+**Meeting / ops PDF:** [`UniformDesk_Supplier_Guide.pdf`](./UniformDesk_Supplier_Guide.pdf) — rebuild with `python docs/build-supplier-guide-pdf.py`.
 
 Demo password for seed users: `desk1234`.
 
@@ -48,7 +52,7 @@ Default visual theme: **National** (institutional green & gold). Switch anytime 
 ### School catalogue & kits (`/supplier/schools/[id]/catalog`) — admin
 
 - Each linked school has its **own** items, sizes, and admission kits.
-- SKUs should match supplier products so DN receive maps cleanly.
+- SKUs should match supplier products so DN **Post to campus stock** maps cleanly.
 - After **Create school**, set up the catalogue here.
 
 ### Co-issue (`/supplier/issue`) — admin + staff
@@ -73,6 +77,8 @@ Default visual theme: **National** (institutional green & gold). Switch anytime 
 - Master SKUs and prices for deliveries and invoices.
 
 ### Orders / Deliveries / Invoices — admin
+
+On a delivery note, **Post to campus stock** (supplier admin) posts the same inbound receipt + ledger increments previously done by school receive. Required before co-issue can draw those lines. Invoice remains optional for admission day.
 
 - School POs, pack & dispatch, bill & collect (including M-Pesa sandbox).
 

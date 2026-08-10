@@ -4,9 +4,11 @@ import { format } from "date-fns";
 import {
   createInvoiceAction,
   dispatchDeliveryAction,
+  postDeliveryToCampusStockAction,
 } from "@/app/actions/supply";
 import { DeliveryNoteSheet } from "@/components/delivery-note-sheet";
 import { PrintButton } from "@/components/print-button";
+import { ReceiveDeliveryForm } from "@/components/receive-delivery-form";
 import { StatusPill } from "@/components/status-pill";
 import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { getDelivery } from "@/modules/supply/deliveries";
@@ -22,9 +24,14 @@ export default async function SupplierDeliveryDetailPage({
   if (!delivery || delivery.supplierId !== user.supplierId) notFound();
 
   const showDispatch = delivery.status === "packed";
+  const canPostStock =
+    delivery.status !== "delivered" &&
+    delivery.status !== "cancelled" &&
+    !delivery.receipt;
   const canInvoice =
     !delivery.invoice && delivery.status !== "cancelled";
   const fromName = delivery.supplier.brandName || delivery.supplier.name;
+  const catalogReady = delivery.lines.every((l) => l.schoolItem);
 
   return (
     <div className="page-stack mx-auto max-w-3xl">
@@ -50,7 +57,7 @@ export default async function SupplierDeliveryDetailPage({
           {showDispatch && (
             <form action={dispatchDeliveryAction}>
               <input type="hidden" name="deliveryId" value={delivery.id} />
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="btn btn-ghost">
                 Mark in transit
               </button>
             </form>
@@ -82,33 +89,83 @@ export default async function SupplierDeliveryDetailPage({
         lines={delivery.lines}
       />
 
-      <section className="card no-print">
-        <div className="card-body space-y-2 text-sm">
-          {delivery.status === "in_transit" && (
-            <p className="text-[var(--muted)]">
-              Waiting for school receive on Deliveries.
-            </p>
-          )}
-          {delivery.invoice ? (
-            <p>
-              Invoice{" "}
-              <Link
-                href={`/supplier/invoices/${delivery.invoice.id}`}
-                className="font-semibold text-[var(--accent)]"
-              >
-                {delivery.invoice.invoiceNo}
-              </Link>
-            </p>
-          ) : (
-            <p className="text-[var(--muted)]">
-              Catalog match:{" "}
-              {delivery.lines.every((l) => l.schoolItem)
-                ? "All lines matched"
-                : "Some lines pending school SKU match"}
-            </p>
-          )}
-        </div>
-      </section>
+      {canPostStock && (
+        <section className="card no-print">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title text-base">Post to campus stock</h2>
+              <p className="card-subtitle">
+                Posts DN lines to the school ledger so co-issue can draw stock.
+                Same receipt + ledger path as campus receive.
+              </p>
+            </div>
+          </div>
+          <div className="card-body space-y-3">
+            {!catalogReady && (
+              <p className="field-error" role="status">
+                Some lines have no matching school catalogue SKU. Add matching
+                items under Schools → Catalogue &amp; kits before posting.
+              </p>
+            )}
+            <ReceiveDeliveryForm
+              deliveryId={delivery.id}
+              action={postDeliveryToCampusStockAction}
+              submitLabel="Post to campus stock"
+              pendingLabel="Posting…"
+              hint="Creates an inbound receipt and increments campus stock balances"
+            />
+          </div>
+        </section>
+      )}
+
+      {delivery.receipt && (
+        <section className="card no-print">
+          <div className="card-body text-sm">
+            Posted to campus stock{" "}
+            {format(delivery.receipt.receivedAt, "dd MMM yyyy HH:mm")}
+            {delivery.receipt.note ? ` · ${delivery.receipt.note}` : ""}
+          </div>
+        </section>
+      )}
+
+      {!canPostStock && !delivery.receipt && (
+        <section className="card no-print">
+          <div className="card-body space-y-2 text-sm">
+            {delivery.invoice ? (
+              <p>
+                Invoice{" "}
+                <Link
+                  href={`/supplier/invoices/${delivery.invoice.id}`}
+                  className="font-semibold text-[var(--accent)]"
+                >
+                  {delivery.invoice.invoiceNo}
+                </Link>
+              </p>
+            ) : (
+              <p className="text-[var(--muted)]">
+                Catalog match:{" "}
+                {catalogReady
+                  ? "All lines matched"
+                  : "Some lines pending school SKU match"}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {delivery.receipt && delivery.invoice && (
+        <section className="card no-print">
+          <div className="card-body text-sm">
+            Invoice{" "}
+            <Link
+              href={`/supplier/invoices/${delivery.invoice.id}`}
+              className="font-semibold text-[var(--accent)]"
+            >
+              {delivery.invoice.invoiceNo}
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

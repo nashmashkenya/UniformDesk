@@ -8,11 +8,28 @@ import {
 
 const initial: SupplyState = {};
 
-export function ReceiveDeliveryForm({ deliveryId }: { deliveryId: string }) {
-  const [state, action, pending] = useActionState(receiveDeliveryAction, initial);
+type ReceiveAction = (
+  prev: SupplyState,
+  formData: FormData,
+) => Promise<SupplyState>;
+
+export function ReceiveDeliveryForm({
+  deliveryId,
+  action = receiveDeliveryAction,
+  submitLabel = "Receive into stock",
+  pendingLabel = "Receiving…",
+  hint = "Posted with the stock ledger receipt",
+}: {
+  deliveryId: string;
+  action?: ReceiveAction;
+  submitLabel?: string;
+  pendingLabel?: string;
+  hint?: string;
+}) {
+  const [state, formAction, pending] = useActionState(action, initial);
 
   return (
-    <form action={action} className="form-stack">
+    <form action={formAction} className="form-stack">
       <input type="hidden" name="deliveryId" value={deliveryId} />
       <div className="field-group">
         <label className="field-label" htmlFor="receive-note">
@@ -24,7 +41,7 @@ export function ReceiveDeliveryForm({ deliveryId }: { deliveryId: string }) {
           className="field"
           placeholder="Optional note for the inbound receipt"
         />
-        <p className="field-hint">Posted with the stock ledger receipt</p>
+        <p className="field-hint">{hint}</p>
       </div>
       {state.error && (
         <p className="field-error" role="alert">
@@ -33,7 +50,7 @@ export function ReceiveDeliveryForm({ deliveryId }: { deliveryId: string }) {
       )}
       <div>
         <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Receiving…" : "Receive into stock"}
+          {pending ? pendingLabel : submitLabel}
         </button>
       </div>
     </form>

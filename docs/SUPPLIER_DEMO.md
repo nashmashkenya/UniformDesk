@@ -2,7 +2,7 @@
 
 Use this script to take a **supplier** through the live product.  
 Companion slides (screenshots): [`presentation/UniformDesk_User_Manual.pptx`](./presentation/UniformDesk_User_Manual.pptx)  
-Full ops reference: [`DESK_GUIDE.md`](./DESK_GUIDE.md)
+Full ops reference: [`DESK_GUIDE.md`](./DESK_GUIDE.md) · Staff guide: [`STAFF_USER_MANUAL.md`](./STAFF_USER_MANUAL.md) · Admin guide: [`ADMIN_USER_MANUAL.md`](./ADMIN_USER_MANUAL.md)
 
 **Time:** ~20–25 minutes live · ~10 minutes if you skip print demos  
 **App:** `http://localhost:3000` (or your demo URL)  
@@ -77,13 +77,13 @@ UniformDesk is **supplier-owned**: your admins run schools, catalogues, deliveri
 
 | Step | Where | What to show |
 |------|--------|----------------|
-| Orders | `/supplier/orders` | Create / open a PO for a linked school |
-| Deliveries | `/supplier/deliveries` | Pack / dispatch DN |
-| DN detail | `/supplier/deliveries/[id]` | Lines → **Print DN** |
-| Invoices | `/supplier/invoices` | Invoice from delivery |
+| Orders | `/supplier/orders` | Create / open a PO for a linked school (optional) |
+| Deliveries | `/supplier/deliveries` | Pack DN (skip PO if you want) |
+| DN detail | `/supplier/deliveries/[id]` | **Post to campus stock** → **Print DN** |
+| Invoices | `/supplier/invoices` | Invoice from delivery (can wait until after admission) |
 | Invoice detail | `/supplier/invoices/[id]` | Totals → **Print invoice** |
 
-**Say:** “Paper packs print from the browser — compact A4 portrait. Stock lands on the campus ledger when you receive against the DN in ops.”
+**Say:** “Paper packs print from the browser — compact A4 portrait. Stock lands on the campus ledger when the supplier admin posts the DN to campus stock — no school login needed.”
 
 ---
 
