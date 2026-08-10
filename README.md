@@ -4,27 +4,30 @@
 
 Phase 1 is **supplier-operated**: `supplier_admin` (super user) and `supplier_staff` (issue desk). Schools are campus data sites — school operational login is closed; follow-up reports come later.
 
-**Docs:** [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (day-to-day ops + printing) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/) (system overview PPT)
+**Docs:** [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (day-to-day ops) · [`docs/RAILWAY.md`](./docs/RAILWAY.md) (deploy) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/)
 
 ## Stack
 
 - Next.js (App Router) + TypeScript
-- Prisma + SQLite (local / CI); Postgres cutover guide in [`docs/PRODUCTION.md`](./docs/PRODUCTION.md)
+- Prisma + **PostgreSQL** (Docker locally, GitHub Actions CI, Railway in production)
 - Session auth (JWT cookie) + edge middleware + RBAC
 - GitHub Actions CI on `main` / PRs
 
 ## Setup
 
 ```bash
-cp .env.example .env   # set AUTH_SECRET
+docker compose up -d          # Postgres on localhost:5432
+cp .env.example .env          # set AUTH_SECRET (DATABASE_URL already points at Docker)
 npm install
-npx prisma migrate dev
+npx prisma migrate deploy
 npm run db:seed
 npm test
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+**Railway deploy:** see [`docs/RAILWAY.md`](./docs/RAILWAY.md).
 
 ### Roles
 

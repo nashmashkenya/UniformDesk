@@ -1,12 +1,16 @@
 import "dotenv/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import bcrypt from "bcryptjs";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? "file:./prisma/dev.db",
-});
-const prisma = new PrismaClient({ adapter });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set (use Postgres — see .env.example)");
+}
+
+const pool = new Pool({ connectionString });
+const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {
   await prisma.payment.deleteMany();
@@ -29,6 +33,8 @@ async function main() {
   await prisma.kit.deleteMany();
   await prisma.itemSize.deleteMany();
   await prisma.item.deleteMany();
+  await prisma.studentUniformPlanLine.deleteMany();
+  await prisma.studentUniformPlan.deleteMany();
   await prisma.student.deleteMany();
   await prisma.user.deleteMany();
   await prisma.supplier.deleteMany();
@@ -315,4 +321,5 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
+    await pool.end();
   });

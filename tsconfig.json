@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "tests", "scripts", "prisma/seed.ts", "prisma/migrations_sqlite_legacy"]
 }
