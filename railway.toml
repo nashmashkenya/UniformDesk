@@ -1,7 +1,9 @@
 # Railway deploy defaults for UniformDesk (Next.js + Prisma Postgres)
+# Nixpacks already runs npm install; do NOT run npm ci again in build
+# (EBUSY on node_modules/.cache is a common failure mode).
 [build]
 builder = "NIXPACKS"
-buildCommand = "npm ci && npx prisma generate && npx prisma migrate deploy && npm run build"
+buildCommand = "npx prisma generate && npx prisma migrate deploy && npm run build"
 
 [deploy]
 startCommand = "npm run start"

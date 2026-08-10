@@ -30,11 +30,12 @@ On the **web** service → **Variables**:
 
 `railway.toml` already sets:
 
-- **Build:** `npm ci && npx prisma generate && npx prisma migrate deploy && npm run build`
+- **Build:** `npx prisma generate && npx prisma migrate deploy && npm run build`  
+  (Nixpacks installs deps first — do **not** add `npm ci` here or builds can fail with `EBUSY` on `node_modules/.cache`)
 - **Start:** `npm run start`
 - **Health check:** `/login`
 
-If the UI overrides these, match the same commands. Railway injects `PORT`; Next.js uses it automatically.
+If the Railway UI has a custom build command, match the same string (or clear it so `railway.toml` wins). Railway injects `PORT`; Next.js uses it automatically.
 
 ## 5. Public domain
 
