@@ -86,18 +86,22 @@ describe("still to receive (incomplete uniforms)", () => {
       data: { qtyOnHand: 0 },
     });
 
-    // First attempt: request 2, issue 0 — should fail (no stock)
-    await expect(
-      issueKit({
-        schoolId: desk.school.id,
-        actorUserId: desk.user.id,
-        studentId: desk.student.id,
-        paymentMethod: "cash",
-        lines: [
-          { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 2 },
-        ],
-      }),
-    ).rejects.toThrow(/no stock/i);
+    // Zero stock: desk still records the need as still owed (stock short)
+    const emptySlip = await issueKit({
+      schoolId: desk.school.id,
+      actorUserId: desk.user.id,
+      studentId: desk.student.id,
+      paymentMethod: "cash",
+      lines: [
+        { itemId: desk.item.id, sizeLabel: "M", qtyRequested: 2 },
+      ],
+    });
+    expect(emptySlip.lines[0]?.qtyIssued).toBe(0);
+    expect(emptySlip.lines[0]?.shortageQty).toBe(2);
+
+    let still = await getStudentStillToReceive(desk.school.id, desk.student.id);
+    expect(still?.totalOwed).toBe(2);
+    expect(still?.lines[0]?.holdReason).toBe("stock_shortage");
 
     await prisma.stockBalance.update({
       where: {
@@ -120,7 +124,7 @@ describe("still to receive (incomplete uniforms)", () => {
       ],
     });
 
-    let still = await getStudentStillToReceive(desk.school.id, desk.student.id);
+    still = await getStudentStillToReceive(desk.school.id, desk.student.id);
     expect(still?.totalOwed).toBe(1);
 
     await prisma.stockBalance.update({

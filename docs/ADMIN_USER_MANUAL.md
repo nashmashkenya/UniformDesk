@@ -397,12 +397,18 @@ Desk payment on **Issue** (method + reference) is separate from invoice collecti
 
 1. Open **Issue**  
 2. Pick campus if you manage several schools  
-3. Find or enter the student  
+3. Find or enter the student (optional parent name / phone)  
 4. Load a kit or adjust lines  
-5. Enter **payment method** and **reference** (no amount)  
-6. Confirm  
+5. Tick **Issue now** or untick to **Hold** per line  
+6. Enter **payment method**, **reference**, optional **KES amount**  
+7. Confirm  
 
-What happens: slip with your name as issuer; stock goes down; shortages open **Still owed**.
+What happens: slip with your name as issuer; issued lines reduce stock; held/short lines open **Still owed** with reason. Slip shows a **parent receipt summary** (received vs pending).
+
+### Reports for fulfilment
+
+- **Paid not collected** — paid/deposit lines still owed (aging)  
+- **Cash-up** — today’s desk payments by method / amount
 
 ---
 

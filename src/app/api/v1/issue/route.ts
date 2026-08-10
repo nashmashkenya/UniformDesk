@@ -39,14 +39,26 @@ export async function POST(request: Request) {
   }
 
   try {
+    const paymentAmountCents =
+      payload.paymentAmountKes != null
+        ? payload.paymentAmountKes * 100
+        : null;
+
     const slip = await issueKit({
       schoolId: access.schoolId,
       actorUserId: access.actorUserId,
       studentId: payload.studentId,
-      lines: payload.lines,
+      lines: payload.lines.map((line) => ({
+        itemId: line.itemId,
+        sizeLabel: line.sizeLabel,
+        qtyRequested: line.qtyRequested,
+        fulfil: line.fulfil,
+      })),
       kitId: payload.kitId,
       paymentMethod: payload.paymentMethod,
       paymentReference: payload.paymentReference,
+      paymentAmountCents,
+      moneyStatus: "paid",
     });
 
     revalidatePath("/");
@@ -54,6 +66,7 @@ export async function POST(request: Request) {
     revalidatePath("/stock");
     revalidatePath("/reports");
     revalidatePath("/supplier/issue");
+    revalidatePath("/supplier/reports");
     revalidatePath("/supplier/activity");
     revalidatePath("/incomplete");
     revalidatePath("/supplier/incomplete");

@@ -6,10 +6,12 @@ export type QueuedIssuePayload = {
   kitId?: string;
   paymentMethod: "cash" | "bank" | "mpesa" | "other";
   paymentReference?: string;
+  paymentAmountKes?: number;
   lines: {
     itemId: string;
     sizeLabel: string;
     qtyRequested: number;
+    fulfil?: boolean;
   }[];
   studentLabel?: string;
 };

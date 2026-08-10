@@ -1,12 +1,15 @@
-import type { PaymentMethod } from "@/generated/prisma/client";
+import type { PaymentMethod, PlanMoneyStatus } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { applyIssueToUniformPlan } from "@/modules/issue/outstanding";
 import { newPublicToken } from "@/modules/issue/proof";
+import { buildParentReceiptSummary } from "@/modules/issue/receipt";
 
 export type IssueLineInput = {
   itemId: string;
   sizeLabel: string;
   qtyRequested: number;
+  /** Issue from stock now (default). false = hold for later. */
+  fulfil?: boolean;
 };
 
 const DESK_ACK_NAME = "Desk issue";
@@ -37,11 +40,14 @@ export async function issueKit(input: {
   actorUserId: string;
   studentId: string;
   lines: IssueLineInput[];
-  /** How parent paid at the desk (no amount stored) */
   paymentMethod: PaymentMethod;
   paymentReference?: string | null;
+  /** Optional desk payment amount in cents */
+  paymentAmountCents?: number | null;
   /** When set, opens/extends the student’s “still to receive” kit plan */
   kitId?: string | null;
+  /** Mark plan lines covered by this payment */
+  moneyStatus?: PlanMoneyStatus;
   /** @deprecated Parent slip/signature not required */
   acknowledgmentName?: string;
   acknowledgmentSignature?: string;
@@ -51,6 +57,12 @@ export async function issueKit(input: {
   }
   if (!input.paymentMethod) {
     throw new Error("Payment method is required");
+  }
+  if (
+    input.paymentAmountCents != null &&
+    input.paymentAmountCents < 0
+  ) {
+    throw new Error("Payment amount cannot be negative");
   }
 
   return prisma.$transaction(async (tx) => {
@@ -68,6 +80,20 @@ export async function issueKit(input: {
       if (line.qtyRequested <= 0) {
         throw new Error("Requested quantity must be greater than zero");
       }
+      const fulfil = line.fulfil !== false;
+      if (!fulfil) {
+        prepared.push({
+          ...line,
+          fulfil: false,
+          heldByDesk: true,
+          qtyIssued: 0,
+          shortageQty: line.qtyRequested,
+          onHand: 0,
+          holdReason: "held_by_desk" as const,
+        });
+        continue;
+      }
+
       const balance = await tx.stockBalance.findUnique({
         where: {
           schoolId_itemId_sizeLabel: {
@@ -80,15 +106,30 @@ export async function issueKit(input: {
       const onHand = balance?.qtyOnHand ?? 0;
       const qtyIssued = Math.min(onHand, line.qtyRequested);
       const shortageQty = line.qtyRequested - qtyIssued;
-      prepared.push({ ...line, qtyIssued, shortageQty, onHand });
+      prepared.push({
+        ...line,
+        fulfil: true,
+        heldByDesk: false,
+        qtyIssued,
+        shortageQty,
+        onHand,
+        holdReason:
+          shortageQty > 0 ? ("stock_shortage" as const) : null,
+      });
     }
 
-    if (prepared.every((line) => line.qtyIssued === 0)) {
-      throw new Error("No stock available for the selected items");
+    const anyIssued = prepared.some((line) => line.qtyIssued > 0);
+    const anyHold = prepared.some(
+      (line) => line.heldByDesk || line.shortageQty > 0,
+    );
+    if (!anyIssued && !anyHold) {
+      throw new Error("Nothing to issue or hold");
     }
 
     const slipNo = await nextSlipNo(input.schoolId, tx);
     const now = new Date();
+    const moneyStatus: PlanMoneyStatus =
+      input.moneyStatus ?? "paid";
 
     const slip = await tx.issueSlip.create({
       data: {
@@ -107,6 +148,10 @@ export async function issueKit(input: {
         acknowledgedAt: now,
         paymentMethod: input.paymentMethod,
         paymentReference: input.paymentReference?.trim() || null,
+        paymentAmountCents:
+          input.paymentAmountCents != null
+            ? Math.round(input.paymentAmountCents)
+            : null,
         publicToken: newPublicToken(),
         lines: {
           create: prepared.map((line) => ({
@@ -115,6 +160,7 @@ export async function issueKit(input: {
             qtyRequested: line.qtyRequested,
             qtyIssued: line.qtyIssued,
             shortageQty: line.shortageQty,
+            heldByDesk: line.heldByDesk,
           })),
         },
       },
@@ -164,7 +210,9 @@ export async function issueKit(input: {
             refType: "issue_slips",
             refId: slip.id,
             actorUserId: input.actorUserId,
-            note: `Shortage of ${line.shortageQty}`,
+            note: line.heldByDesk
+              ? `Held by desk · ${line.shortageQty}`
+              : `Shortage of ${line.shortageQty}`,
           },
         });
       }
@@ -174,10 +222,12 @@ export async function issueKit(input: {
       schoolId: input.schoolId,
       studentId: input.studentId,
       kitId: input.kitId,
+      moneyStatus,
       lines: prepared.map((line) => ({
         itemId: line.itemId,
         qtyRequested: line.qtyRequested,
         qtyIssued: line.qtyIssued,
+        holdReason: line.holdReason,
       })),
     });
 
@@ -186,7 +236,7 @@ export async function issueKit(input: {
 }
 
 export async function getSlip(schoolId: string, slipId: string) {
-  return prisma.issueSlip.findFirst({
+  const slip = await prisma.issueSlip.findFirst({
     where: { id: slipId, schoolId },
     include: {
       lines: { include: { item: true } },
@@ -196,4 +246,25 @@ export async function getSlip(schoolId: string, slipId: string) {
       school: true,
     },
   });
+  if (!slip) return null;
+
+  const still = await prisma.studentUniformPlan.findFirst({
+    where: {
+      schoolId,
+      studentId: slip.studentId,
+      status: "open",
+    },
+    include: {
+      lines: {
+        include: { item: { select: { name: true } } },
+      },
+    },
+  });
+
+  const receipt = buildParentReceiptSummary({
+    slip,
+    openPlan: still,
+  });
+
+  return { ...slip, receipt };
 }

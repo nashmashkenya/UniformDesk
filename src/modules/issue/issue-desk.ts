@@ -13,6 +13,8 @@ export async function loadIssueDeskData(schoolId: string) {
         admissionNo: true,
         fullName: true,
         className: true,
+        parentName: true,
+        parentPhone: true,
       },
     }),
     prisma.kit.findMany({

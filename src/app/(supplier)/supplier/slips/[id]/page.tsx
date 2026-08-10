@@ -1,12 +1,16 @@
 import { format } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PrintButton } from "@/components/print-button";
 import { requireSupplierUser } from "@/lib/auth";
+import { formatMoney } from "@/lib/money";
+import { prisma } from "@/lib/db";
 import {
   assertCanViewSchoolSlip,
   getSlipForViewer,
   issuerAffiliation,
 } from "@/modules/issue/access";
+import { buildParentReceiptSummary } from "@/modules/issue/receipt";
 
 export default async function SupplierSlipPage({
   params,
@@ -24,6 +28,18 @@ export default async function SupplierSlipPage({
     notFound();
   }
 
+  const openPlan = await prisma.studentUniformPlan.findFirst({
+    where: {
+      schoolId: slip.schoolId,
+      studentId: slip.studentId,
+      status: "open",
+    },
+    include: {
+      lines: { include: { item: { select: { name: true } } } },
+    },
+  });
+  const receipt = buildParentReceiptSummary({ slip, openPlan });
+
   return (
     <div className="page-stack mx-auto max-w-3xl">
       <header className="page-header no-print">
@@ -37,9 +53,10 @@ export default async function SupplierSlipPage({
           </p>
           <h1 className="page-title">Issue record</h1>
           <p className="page-sub">
-            {slip.slipNo} · staff record (no parent slip)
+            {slip.slipNo} · issue record + parent receipt summary
           </p>
         </div>
+        <PrintButton label="Print receipt" />
       </header>
 
       <article className="card">
@@ -75,6 +92,14 @@ export default async function SupplierSlipPage({
               <div className="text-[var(--muted)]">
                 {slip.student.className}
               </div>
+              {(slip.student.parentName || slip.student.parentPhone) && (
+                <div className="mt-2 text-[var(--muted)]">
+                  Parent:{" "}
+                  {[slip.student.parentName, slip.student.parentPhone]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              )}
             </div>
             <div className="card-inset">
               <div className="section-label">Issued by</div>
@@ -86,6 +111,10 @@ export default async function SupplierSlipPage({
                   ? `Paid: ${slip.paymentMethod}${
                       slip.paymentReference
                         ? ` · ${slip.paymentReference}`
+                        : ""
+                    }${
+                      slip.paymentAmountCents != null
+                        ? ` · ${formatMoney(slip.paymentAmountCents)}`
                         : ""
                     }`
                   : "Payment not recorded"}
@@ -101,7 +130,7 @@ export default async function SupplierSlipPage({
                   <th>Size</th>
                   <th>Requested</th>
                   <th>Issued</th>
-                  <th>Shortage</th>
+                  <th>Held / short</th>
                 </tr>
               </thead>
               <tbody>
@@ -111,11 +140,21 @@ export default async function SupplierSlipPage({
                     <td>{line.sizeLabel}</td>
                     <td>{line.qtyRequested}</td>
                     <td>{line.qtyIssued}</td>
-                    <td className="text-[var(--warn)]">{line.shortageQty}</td>
+                    <td className="text-[var(--warn)]">
+                      {line.shortageQty}
+                      {line.heldByDesk ? " · held" : ""}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="card-inset">
+            <div className="section-label">Parent receipt summary</div>
+            <pre className="mt-2 whitespace-pre-wrap font-sans text-sm leading-relaxed">
+              {receipt.text}
+            </pre>
           </div>
         </div>
       </article>

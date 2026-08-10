@@ -5,16 +5,23 @@ import { ReportPrintBanner } from "@/components/report-print-banner";
 import { SupplierCampusEmptyState } from "@/components/supplier-campus-gate";
 import { SupplierSchoolSelect } from "@/components/supplier-school-select";
 import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
+import { formatMoney } from "@/lib/money";
 import {
   listActorCampuses,
   pickCampus,
 } from "@/modules/identity/supplier-campuses";
 import { listStudentsStillOwed } from "@/modules/issue/outstanding";
 import {
+  listDeskCashUp,
+  listPaidNotCollected,
+} from "@/modules/issue/plan-reports";
+import {
   listSchoolIssuedForSupplier,
   listSchoolStockForSupplier,
   supplierReportStats,
 } from "@/modules/reports/supplier-reports";
+
+type ReportView = "issued" | "stock" | "paid" | "cashup";
 
 export default async function SupplierReportsPage({
   searchParams,
@@ -23,7 +30,12 @@ export default async function SupplierReportsPage({
 }) {
   const user = await requireSupplierUser();
   const { schoolId: schoolIdParam, view: viewParam } = await searchParams;
-  const view = viewParam === "stock" ? "stock" : "issued";
+  const view: ReportView =
+    viewParam === "stock" ||
+    viewParam === "paid" ||
+    viewParam === "cashup"
+      ? viewParam
+      : "issued";
 
   const campuses = await listActorCampuses(user);
   const selected = pickCampus(campuses, schoolIdParam);
@@ -33,24 +45,34 @@ export default async function SupplierReportsPage({
     return <SupplierCampusEmptyState title="Reports" isAdmin={isAdmin} />;
   }
 
-  const [stats, issued, balances, stillOwed] = await Promise.all([
-    supplierReportStats({
-      supplierId: user.supplierId,
-      schoolId: selected.id,
-    }),
-    listSchoolIssuedForSupplier({
-      supplierId: user.supplierId,
-      schoolId: selected.id,
-    }),
-    listSchoolStockForSupplier({
-      supplierId: user.supplierId,
-      schoolId: selected.id,
-    }),
-    listStudentsStillOwed(selected.id, 5),
-  ]);
+  const [stats, issued, balances, stillOwed, paidPending, cashUp] =
+    await Promise.all([
+      supplierReportStats({
+        supplierId: user.supplierId,
+        schoolId: selected.id,
+      }),
+      listSchoolIssuedForSupplier({
+        supplierId: user.supplierId,
+        schoolId: selected.id,
+      }),
+      listSchoolStockForSupplier({
+        supplierId: user.supplierId,
+        schoolId: selected.id,
+      }),
+      listStudentsStillOwed(selected.id, 5),
+      listPaidNotCollected(selected.id, { take: 50 }),
+      listDeskCashUp(selected.id, new Date()),
+    ]);
 
   const schoolQs = `schoolId=${selected.id}`;
-  const viewLabel = view === "stock" ? "Stock on hand" : "Issued today";
+  const viewLabel =
+    view === "stock"
+      ? "Stock on hand"
+      : view === "paid"
+        ? "Paid not collected"
+        : view === "cashup"
+          ? "Cash-up today"
+          : "Issued today";
 
   return (
     <div className="page-stack">
@@ -99,6 +121,18 @@ export default async function SupplierReportsPage({
           Stock on hand
         </Link>
         <Link
+          href={`/supplier/reports?${schoolQs}&view=paid`}
+          className={`btn ${view === "paid" ? "btn-primary" : "btn-secondary"}`}
+        >
+          Paid not collected
+        </Link>
+        <Link
+          href={`/supplier/reports?${schoolQs}&view=cashup`}
+          className={`btn ${view === "cashup" ? "btn-primary" : "btn-secondary"}`}
+        >
+          Cash-up
+        </Link>
+        <Link
           href={`/supplier/incomplete?${schoolQs}`}
           className="btn btn-ghost"
         >
@@ -131,14 +165,13 @@ export default async function SupplierReportsPage({
           </div>
         </section>
 
-        {view === "issued" ? (
+        {view === "issued" && (
           <section className="card">
             <div className="card-header">
               <div>
                 <h2 className="card-title text-base">Issued today</h2>
                 <p className="card-subtitle">
-                  Who received what — payment method and reference, no parent
-                  slip
+                  Who received what — payment method, reference, optional amount
                 </p>
               </div>
               <span className="chip">{issued.length}</span>
@@ -207,13 +240,15 @@ export default async function SupplierReportsPage({
               })}
             </div>
           </section>
-        ) : (
+        )}
+
+        {view === "stock" && (
           <section className="card">
             <div className="card-header">
               <div>
                 <h2 className="card-title text-base">Stock on hand</h2>
                 <p className="card-subtitle">
-                  Read-only campus balances — school does stock take / adjust
+                  Read-only campus balances
                 </p>
               </div>
               <span className="chip">{balances.length}</span>
@@ -253,6 +288,124 @@ export default async function SupplierReportsPage({
                   )}
                 </tbody>
               </table>
+            </div>
+          </section>
+        )}
+
+        {view === "paid" && (
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title text-base">Paid not collected</h2>
+                <p className="card-subtitle">
+                  Paid or deposit lines still owed — aging by plan open days
+                </p>
+              </div>
+              <span className="chip chip-warn">{paidPending.length}</span>
+            </div>
+            <div className="card-body space-y-3">
+              {paidPending.length === 0 && (
+                <p className="text-sm text-[var(--muted)]">
+                  No paid items waiting for collection.
+                </p>
+              )}
+              {paidPending.map((row) => (
+                <article key={row.planId} className="card-inset">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <div className="font-semibold">{row.student.fullName}</div>
+                      <div className="text-xs text-[var(--muted)]">
+                        {row.student.admissionNo}
+                        {row.student.className
+                          ? ` · ${row.student.className}`
+                          : ""}
+                        {" · "}
+                        {row.label} · {row.ageDays}d open
+                      </div>
+                      {(row.student.parentName ||
+                        row.student.parentPhone) && (
+                        <div className="mt-1 text-xs text-[var(--muted)]">
+                          Parent:{" "}
+                          {[row.student.parentName, row.student.parentPhone]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </div>
+                      )}
+                    </div>
+                    <span className="chip chip-warn">
+                      {row.totalOwed} owed
+                    </span>
+                  </div>
+                  <ul className="mt-2 space-y-1 text-sm">
+                    {row.lines.map((line) => (
+                      <li key={line.itemId}>
+                        {line.qtyOwed}× {line.itemName}
+                        {line.holdLabel ? ` · ${line.holdLabel}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 no-print">
+                    <Link
+                      href={`/supplier/issue?schoolId=${selected.id}`}
+                      className="btn btn-primary"
+                    >
+                      Go to Issue
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {view === "cashup" && (
+          <section className="card">
+            <div className="card-header">
+              <div>
+                <h2 className="card-title text-base">Cash-up today</h2>
+                <p className="card-subtitle">
+                  Desk payments recorded on issue slips (
+                  {format(cashUp.day, "dd MMM yyyy")})
+                </p>
+              </div>
+              <span className="chip">{cashUp.slipCount}</span>
+            </div>
+            <div className="card-body space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="stat-card">
+                  <div className="stat-label">Slips with payment</div>
+                  <div className="stat-value mt-1">{cashUp.slipCount}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">With amount</div>
+                  <div className="stat-value mt-1">{cashUp.withAmountCount}</div>
+                </div>
+                <div className="stat-card">
+                  <div className="stat-label">Total recorded</div>
+                  <div className="stat-value mt-1 text-[var(--accent)]">
+                    {formatMoney(cashUp.totalAmountCents)}
+                  </div>
+                </div>
+              </div>
+              <ul className="space-y-2 text-sm">
+                {Object.entries(cashUp.byMethod).map(([method, row]) => (
+                  <li
+                    key={method}
+                    className="flex justify-between gap-2 card-inset"
+                  >
+                    <span className="capitalize">{method}</span>
+                    <span>
+                      {row.count} slip{row.count === 1 ? "" : "s"}
+                      {row.amountCents
+                        ? ` · ${formatMoney(row.amountCents)}`
+                        : ""}
+                    </span>
+                  </li>
+                ))}
+                {cashUp.slipCount === 0 && (
+                  <li className="text-[var(--muted)]">No payments today.</li>
+                )}
+              </ul>
             </div>
           </section>
         )}

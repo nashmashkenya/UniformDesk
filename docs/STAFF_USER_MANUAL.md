@@ -65,14 +65,14 @@ You do **not** set up schools, products, kits, deliveries, stock posting, invoic
 | **Post to campus stock** | Admin action on a DN that puts sizes on the campus ledger. **You cannot do this** — ask admin if stock is zero. |
 | **PO** | **P**urchase **O**rder — optional; admin only. |
 | **INV** | **Inv**oice — optional bill; admin only. Not needed for your issue desk. |
-| **KES** | Kenyan Shilling — you do **not** enter amounts when issuing. |
+| **KES** | Kenyan Shilling — optional amount on issue for **Cash-up**; method + reference still required. |
 | **M-Pesa** | Mobile money. On issue, choose it as method and type the code in **reference**. |
 | **Campus** | A **school** you are assigned to work at. |
 | **Co-issue** | Issuing the admission kit — your main job. |
 | **Still owed** | Students whose kit is not fully issued (incomplete). |
 | **Kit** | Named admission set (e.g. Form 1 Girls). |
 | **Slip** | Issue record / printout with your name as issuer. |
-| **Ref / reference** | Receipt number, M-Pesa code, or similar — with payment method, not an amount. |
+| **Ref / reference** | Receipt number, M-Pesa code, or similar — with payment method; amount (KES) is optional. |
 
 School **codes** (e.g. `GFS`) are short school IDs.
 
@@ -161,23 +161,25 @@ If a school is missing from the picker, you are not assigned to it — even if y
 
 1. Open **Issue**
 2. Pick school if you have more than one campus
-3. Find the student **or** enter a new one
+3. Find the student **or** enter a new one (optional parent name / phone)
 4. Load a **kit**, or adjust lines, sizes, and quantities
-5. Enter **payment method** and **reference** (e.g. M-Pesa code, receipt no., or “cash”)
-6. Confirm
+5. On each line tick **Issue now**, or untick to **Hold** (still owed)
+6. Enter **payment method**, **reference**, and optional **amount (KES)**
+7. Confirm
 
 What happens:
 
 - **Slip** created with **your name** as issuer  
-- Campus stock goes down  
-- Shortages appear under **Still owed**  
+- Issued lines reduce campus stock  
+- Held lines and shortages go to **Still owed** with a reason  
+- **Kit status** shows owed / paid / hold  
 
 ### Tips
 
 - One queue per desk so staff do not overlap students  
-- Check size before confirm — stock moves on issue  
-- Partial issue is OK; finish later from **Still owed**  
-- Method + reference only — no **KES** amount on issue  
+- Stock moves only on **Issue now**  
+- Use **Hold** when paid but collecting later  
+- Optional KES amount supports **Reports → Cash-up**  
 
 ### If something blocks you
 
@@ -221,6 +223,8 @@ Use after a busy morning, when a size runs out, or at end of day.
 |------|----------------|
 | **Issued today** | Who received what, method/ref, issuer |
 | **Stock on hand** | Campus balances (view-only) |
+| **Paid not collected** | Paid items still owed (aging) |
+| **Cash-up** | Today’s desk payments by method |
 
 **Print report** for clean A4.  
 You cannot edit stock here — ask admin to post a DN if balances are wrong or empty.

@@ -4,6 +4,8 @@ export type StillToReceiveLine = {
   itemId: string;
   itemName: string;
   qtyOwed: number;
+  moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
+  holdReason: string | null;
 };
 
 export type StudentStillToReceive = {
@@ -11,6 +13,7 @@ export type StudentStillToReceive = {
   label: string;
   lines: StillToReceiveLine[];
   totalOwed: number;
+  openedAt: Date;
 };
 
 type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -39,6 +42,8 @@ export async function getStudentStillToReceive(
       itemId: l.itemId,
       itemName: l.item.name,
       qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
+      moneyStatus: l.moneyStatus,
+      holdReason: l.holdReason,
     }))
     .filter((l) => l.qtyOwed > 0);
 
@@ -49,6 +54,7 @@ export async function getStudentStillToReceive(
     label: plan.label,
     lines,
     totalOwed: lines.reduce((s, l) => s + l.qtyOwed, 0),
+    openedAt: plan.openedAt,
   };
 }
 
@@ -65,6 +71,8 @@ export async function listStudentsStillOwed(
           admissionNo: true,
           fullName: true,
           className: true,
+          parentName: true,
+          parentPhone: true,
           active: true,
         },
       },
@@ -83,6 +91,8 @@ export async function listStudentsStillOwed(
           itemId: l.itemId,
           itemName: l.item.name,
           qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
+          moneyStatus: l.moneyStatus,
+          holdReason: l.holdReason,
         }))
         .filter((l) => l.qtyOwed > 0);
       const totalOwed = lines.reduce((s, l) => s + l.qtyOwed, 0);
@@ -92,6 +102,7 @@ export async function listStudentsStillOwed(
         student: plan.student,
         lines,
         totalOwed,
+        openedAt: plan.openedAt,
       };
     })
     .filter((row) => row.totalOwed > 0 && row.student.active);
@@ -104,9 +115,17 @@ export async function applyIssueToUniformPlan(
     schoolId: string;
     studentId: string;
     kitId?: string | null;
-    lines: { itemId: string; qtyRequested: number; qtyIssued: number }[];
+    moneyStatus?: "unpaid" | "paid" | "deposit" | "waived";
+    lines: {
+      itemId: string;
+      qtyRequested: number;
+      qtyIssued: number;
+      holdReason?: "stock_shortage" | "held_by_desk" | null;
+    }[];
   },
 ) {
+  const moneyStatus = input.moneyStatus ?? "paid";
+  const now = new Date();
   let plan = await tx.studentUniformPlan.findFirst({
     where: {
       schoolId: input.schoolId,
@@ -181,26 +200,41 @@ export async function applyIssueToUniformPlan(
 
   for (const line of input.lines) {
     const existing = plan.lines.find((l) => l.itemId === line.itemId);
+    const nextNeededBase = Math.max(
+      existing?.qtyNeeded ?? 0,
+      line.qtyRequested,
+    );
+    const nextReceived = (existing?.qtyReceived ?? 0) + line.qtyIssued;
+    const nextNeeded = Math.max(nextNeededBase, nextReceived);
+    const stillOwed = nextNeeded - nextReceived;
+    const holdReason =
+      stillOwed > 0 ? (line.holdReason ?? existing?.holdReason ?? null) : null;
+
     if (existing) {
-      const nextNeeded = Math.max(existing.qtyNeeded, line.qtyRequested);
-      // If they already received some and request more later, raise needed
-      const nextReceived = existing.qtyReceived + line.qtyIssued;
       await tx.studentUniformPlanLine.update({
         where: { id: existing.id },
         data: {
-          qtyNeeded: Math.max(nextNeeded, nextReceived),
+          qtyNeeded: nextNeeded,
           qtyReceived: nextReceived,
+          moneyStatus,
+          holdReason,
+          heldAt: holdReason ? existing.heldAt ?? now : null,
         },
       });
-      existing.qtyNeeded = Math.max(nextNeeded, nextReceived);
+      existing.qtyNeeded = nextNeeded;
       existing.qtyReceived = nextReceived;
+      existing.moneyStatus = moneyStatus;
+      existing.holdReason = holdReason;
     } else {
       const created = await tx.studentUniformPlanLine.create({
         data: {
           planId: plan.id,
           itemId: line.itemId,
-          qtyNeeded: Math.max(line.qtyRequested, line.qtyIssued),
+          qtyNeeded: nextNeeded,
           qtyReceived: line.qtyIssued,
+          moneyStatus,
+          holdReason,
+          heldAt: holdReason ? now : null,
         },
       });
       plan.lines.push(created);
@@ -321,6 +355,8 @@ export async function loadStillToReceiveByStudent(
         itemId: l.itemId,
         itemName: l.item.name,
         qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
+        moneyStatus: l.moneyStatus,
+        holdReason: l.holdReason,
       }))
       .filter((l) => l.qtyOwed > 0);
     if (!lines.length) continue;
@@ -329,7 +365,14 @@ export async function loadStillToReceiveByStudent(
       label: plan.label,
       lines,
       totalOwed: lines.reduce((s, l) => s + l.qtyOwed, 0),
+      openedAt: plan.openedAt,
     });
   }
   return map;
+}
+
+export function holdReasonLabel(reason: string | null | undefined) {
+  if (reason === "held_by_desk") return "Held at desk";
+  if (reason === "stock_shortage") return "Stock short";
+  return null;
 }

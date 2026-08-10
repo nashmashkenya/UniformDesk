@@ -23,12 +23,16 @@ export type StudentState = {
   admissionNo?: string;
   fullName?: string;
   className?: string | null;
+  parentName?: string | null;
+  parentPhone?: string | null;
 };
 
 const schema = z.object({
   admissionNo: z.string().min(1),
   fullName: z.string().min(1),
   className: z.string().optional(),
+  parentName: z.string().optional(),
+  parentPhone: z.string().optional(),
   schoolId: z.string().optional(),
 });
 
@@ -43,6 +47,8 @@ export async function addStudentAction(
     admissionNo: formData.get("admissionNo"),
     fullName: formData.get("fullName"),
     className: formData.get("className") || undefined,
+    parentName: formData.get("parentName") || undefined,
+    parentPhone: formData.get("parentPhone") || undefined,
     schoolId: formData.get("schoolId") || undefined,
   });
   if (!parsed.success) {
@@ -72,6 +78,8 @@ export async function addStudentAction(
   const admissionNo = parsed.data.admissionNo.trim().toUpperCase();
   const fullName = parsed.data.fullName.trim();
   const className = parsed.data.className?.trim() || null;
+  const parentName = parsed.data.parentName?.trim() || null;
+  const parentPhone = parsed.data.parentPhone?.trim() || null;
 
   let studentId = "";
   try {
@@ -81,6 +89,8 @@ export async function addStudentAction(
         admissionNo,
         fullName,
         className,
+        parentName,
+        parentPhone,
       },
     });
     studentId = student.id;
@@ -97,6 +107,8 @@ export async function addStudentAction(
     admissionNo,
     fullName,
     className,
+    parentName,
+    parentPhone,
     message: "Student ready for uniform issue",
   };
 }

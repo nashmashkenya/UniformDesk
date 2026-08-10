@@ -8,6 +8,8 @@ export type IssueDeskStillLine = {
   itemId: string;
   itemName: string;
   qtyOwed: number;
+  moneyStatus?: "unpaid" | "paid" | "deposit" | "waived";
+  holdReason?: string | null;
 };
 
 export type IssueDeskStudent = {
@@ -15,6 +17,8 @@ export type IssueDeskStudent = {
   admissionNo: string;
   fullName: string;
   className: string | null;
+  parentName?: string | null;
+  parentPhone?: string | null;
   /** Plain-language remaining kit items, if any */
   stillToReceive?: {
     label: string;

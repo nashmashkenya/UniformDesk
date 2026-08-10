@@ -39,6 +39,14 @@ enum UniformPlanStatus {
   complete
 }
 
+/// Money state on a student kit plan line
+enum PlanMoneyStatus {
+  unpaid
+  paid
+  deposit
+  waived
+}
+
 enum OrderStatus {
   draft
   confirmed
@@ -187,6 +195,9 @@ model Student {
   admissionNo String
   fullName    String
   className   String?
+  /// Guardian / parent contact for follow-up and receipts
+  parentName  String?
+  parentPhone String?
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -219,16 +230,21 @@ model StudentUniformPlan {
 }
 
 model StudentUniformPlanLine {
-  id          String @id @default(cuid())
+  id          String          @id @default(cuid())
   planId      String
   itemId      String
   qtyNeeded   Int
-  qtyReceived Int    @default(0)
+  qtyReceived Int             @default(0)
+  moneyStatus PlanMoneyStatus @default(unpaid)
+  /// stock_shortage | held_by_desk — set while qty still owed
+  holdReason  String?
+  heldAt      DateTime?
 
   plan StudentUniformPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   item Item               @relation(fields: [itemId], references: [id])
 
   @@unique([planId, itemId])
+  @@index([moneyStatus])
 }
 
 model Item {
@@ -362,10 +378,12 @@ model IssueSlip {
   acknowledgmentName      String      @default("Desk issue")
   acknowledgmentSignature String      @default("")
   acknowledgedAt          DateTime    @default(now())
-  /// Parent payment at desk — method only (no amount)
+  /// Parent payment at desk — method (+ optional amount)
   paymentMethod           PaymentMethod?
   /// Receipt no., M-Pesa code, or bank ref
   paymentReference        String?
+  /// Optional amount paid at desk, in cents (KES)
+  paymentAmountCents      Int?
   /// Unguessable token (optional public proof; not required for students)
   publicToken             String      @unique
 
@@ -381,13 +399,15 @@ model IssueSlip {
 }
 
 model IssueLine {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   slipId       String
   itemId       String
   sizeLabel    String
   qtyRequested Int
   qtyIssued    Int
-  shortageQty  Int    @default(0)
+  shortageQty  Int     @default(0)
+  /// Desk chose Hold even if stock may exist
+  heldByDesk   Boolean @default(false)
 
   slip IssueSlip @relation(fields: [slipId], references: [id], onDelete: Cascade)
   item Item      @relation(fields: [itemId], references: [id])

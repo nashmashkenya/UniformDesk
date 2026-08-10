@@ -4,6 +4,8 @@ export const issueLineSchema = z.object({
   itemId: z.string().min(1),
   sizeLabel: z.string().min(1),
   qtyRequested: z.coerce.number().int().positive(),
+  /** true = issue from stock now; false = hold on still owed */
+  fulfil: z.boolean().default(true),
 });
 
 export const paymentMethodSchema = z.enum(["cash", "bank", "mpesa", "other"]);
@@ -19,6 +21,8 @@ export const issuePayloadSchema = z.object({
   paymentMethod: paymentMethodSchema,
   /** Receipt / M-Pesa / bank reference */
   paymentReference: z.string().optional(),
+  /** Optional amount in KES (whole shillings) */
+  paymentAmountKes: z.coerce.number().int().nonnegative().optional(),
   /** Legacy optional — not required for desk issue */
   acknowledgmentName: z.string().optional(),
   acknowledgmentSignature: z.string().optional(),

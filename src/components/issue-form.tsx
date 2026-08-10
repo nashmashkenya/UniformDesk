@@ -19,6 +19,8 @@ type Line = {
   itemId: string;
   sizeLabel: string;
   qtyRequested: number;
+  /** Issue now from stock; false = hold for later */
+  fulfil: boolean;
 };
 
 type StudentMode = "new" | "existing";
@@ -56,10 +58,13 @@ export function IssueForm({
   const [admissionNo, setAdmissionNo] = useState("");
   const [fullName, setFullName] = useState("");
   const [className, setClassName] = useState("");
+  const [parentName, setParentName] = useState("");
+  const [parentPhone, setParentPhone] = useState("");
   const [kitId, setKitId] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
   const [paymentReference, setPaymentReference] = useState("");
+  const [paymentAmountKes, setPaymentAmountKes] = useState("");
   const [balances, setBalances] = useState(initialBalances);
 
   useEffect(() => {
@@ -126,6 +131,7 @@ export function IssueForm({
           itemId: line.itemId,
           sizeLabel: preferred,
           qtyRequested: line.qtyDefault,
+          fulfil: true,
         };
       }),
     );
@@ -146,6 +152,7 @@ export function IssueForm({
         itemId: first.id,
         sizeLabel: first.sizes[0]?.sizeLabel ?? "M",
         qtyRequested: 1,
+        fulfil: true,
       },
     ]);
   }
@@ -156,10 +163,13 @@ export function IssueForm({
     setLines([]);
     setPaymentMethod("cash");
     setPaymentReference("");
+    setPaymentAmountKes("");
     setQuery("");
     setAdmissionNo("");
     setFullName("");
     setClassName("");
+    setParentName("");
+    setParentPhone("");
     setMode("new");
   }
 
@@ -184,6 +194,7 @@ export function IssueForm({
           itemId: owed.itemId,
           sizeLabel: preferred,
           qtyRequested: owed.qtyOwed,
+          fulfil: true,
         };
       }),
     );
@@ -227,6 +238,8 @@ export function IssueForm({
       formData.set("fullName", name);
       formData.set("schoolId", schoolId);
       if (className.trim()) formData.set("className", className.trim());
+      if (parentName.trim()) formData.set("parentName", parentName.trim());
+      if (parentPhone.trim()) formData.set("parentPhone", parentPhone.trim());
 
       const result = await addStudentAction({}, formData);
       if (result.error || !result.studentId) {
@@ -247,6 +260,8 @@ export function IssueForm({
         admissionNo: result.admissionNo || adm.toUpperCase(),
         fullName: result.fullName || name,
         className: result.className ?? (className.trim() || null),
+        parentName: result.parentName ?? (parentName.trim() || null),
+        parentPhone: result.parentPhone ?? (parentPhone.trim() || null),
       };
       setStudents((prev) =>
         prev.some((s) => s.id === student.id) ? prev : [student, ...prev],
@@ -276,22 +291,36 @@ export function IssueForm({
       ? `${selectedStudent.fullName} (${selectedStudent.admissionNo})`
       : "Student";
 
+    const amountRaw = paymentAmountKes.trim();
+    const paymentAmountKesNum =
+      amountRaw === "" ? undefined : Number(amountRaw);
+    if (
+      paymentAmountKesNum != null &&
+      (!Number.isFinite(paymentAmountKesNum) || paymentAmountKesNum < 0)
+    ) {
+      setError("Payment amount must be a whole number in KES");
+      return;
+    }
+
     const payload = {
       studentId,
       schoolId,
       kitId: kitId || undefined,
       paymentMethod,
       paymentReference: paymentReference.trim() || undefined,
+      paymentAmountKes: paymentAmountKesNum,
       lines,
       studentLabel,
     };
+
+    const stockLines = lines.filter((l) => l.fulfil);
 
     setPending(true);
     try {
       async function queueOffline(note: string) {
         await enqueueIssue(payload);
-        setBalances((prev) => applyIssueToBalances(prev, lines));
-        void patchIssueSnapshotBalances(schoolId, lines);
+        setBalances((prev) => applyIssueToBalances(prev, stockLines));
+        void patchIssueSnapshotBalances(schoolId, stockLines);
         window.dispatchEvent(new Event("ud-issue-queued"));
         resetForm();
         setQueuedNote(note);
@@ -455,6 +484,33 @@ export function IssueForm({
                   />
                 </div>
               </div>
+              <div className="form-grid cols-2">
+                <div className="field-group">
+                  <label className="field-label" htmlFor="issue-parent-name">
+                    Parent / guardian name
+                  </label>
+                  <input
+                    id="issue-parent-name"
+                    value={parentName}
+                    onChange={(e) => setParentName(e.target.value)}
+                    placeholder="Optional"
+                    className="field"
+                  />
+                </div>
+                <div className="field-group">
+                  <label className="field-label" htmlFor="issue-parent-phone">
+                    Parent phone
+                  </label>
+                  <input
+                    id="issue-parent-phone"
+                    value={parentPhone}
+                    onChange={(e) => setParentPhone(e.target.value)}
+                    placeholder="e.g. 07…"
+                    inputMode="tel"
+                    className="field"
+                  />
+                </div>
+              </div>
               <button
                 type="button"
                 disabled={admitPending || !online || cachedMode}
@@ -546,18 +602,55 @@ export function IssueForm({
                   ? ` · ${selectedStudent.className}`
                   : ""}
               </p>
+              {(selectedStudent.parentName ||
+                selectedStudent.parentPhone) && (
+                <p className="text-xs text-[var(--muted)]">
+                  Parent:{" "}
+                  {[selectedStudent.parentName, selectedStudent.parentPhone]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
               {selectedStudent.stillToReceive &&
               selectedStudent.stillToReceive.totalOwed > 0 ? (
                 <div className="card-inset border-[color-mix(in_srgb,var(--warn)_35%,var(--line))] bg-[var(--warn-soft)]">
                   <p className="text-sm font-semibold">
-                    Still to receive · {selectedStudent.stillToReceive.label}
+                    Kit status · {selectedStudent.stillToReceive.label}
+                  </p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">
+                    Received vs still owed for this student’s open plan
                   </p>
                   <ul className="mt-2 space-y-1 text-sm">
-                    {selectedStudent.stillToReceive.lines.map((line) => (
-                      <li key={line.itemId}>
-                        {line.qtyOwed}× {line.itemName}
-                      </li>
-                    ))}
+                    {selectedStudent.stillToReceive.lines.map((line) => {
+                      const hold =
+                        line.holdReason === "held_by_desk"
+                          ? "Held at desk"
+                          : line.holdReason === "stock_shortage"
+                            ? "Stock short"
+                            : null;
+                      const money =
+                        line.moneyStatus === "paid" ||
+                        line.moneyStatus === "deposit"
+                          ? "Paid"
+                          : line.moneyStatus === "waived"
+                            ? "Waived"
+                            : "Unpaid";
+                      return (
+                        <li
+                          key={line.itemId}
+                          className="flex flex-wrap items-center gap-2"
+                        >
+                          <span>
+                            {line.qtyOwed}× {line.itemName}
+                          </span>
+                          <span className="chip chip-warn">Owed</span>
+                          <span className="chip">{money}</span>
+                          {hold && (
+                            <span className="chip chip-warn">{hold}</span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                   <button
                     type="button"
@@ -569,8 +662,7 @@ export function IssueForm({
                 </div>
               ) : (
                 <p className="text-xs text-[var(--muted)]">
-                  Tip: load a kit below so we remember anything still owed if
-                  stock runs short.
+                  Tip: load a kit below. Tick Issue now or Hold on each line.
                 </p>
               )}
             </div>
@@ -682,12 +774,35 @@ export function IssueForm({
                     />
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="chip">On hand {onHand}</span>
-                  {shortage > 0 ? (
-                    <span className="chip chip-warn">Shortage {shortage}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="field-check">
+                    <input
+                      type="checkbox"
+                      checked={line.fulfil}
+                      onChange={(e) =>
+                        updateLine(index, { fulfil: e.target.checked })
+                      }
+                    />
+                    <span>
+                      <span className="field-check-title">Issue now</span>
+                      <span className="field-check-sub">
+                        Untick to Hold (still owed)
+                      </span>
+                    </span>
+                  </label>
+                  {line.fulfil ? (
+                    <>
+                      <span className="chip">On hand {onHand}</span>
+                      {shortage > 0 ? (
+                        <span className="chip chip-warn">
+                          Shortage {shortage}
+                        </span>
+                      ) : (
+                        <span className="chip chip-ok">Enough stock</span>
+                      )}
+                    </>
                   ) : (
-                    <span className="chip chip-ok">Enough stock</span>
+                    <span className="chip chip-warn">Hold</span>
                   )}
                 </div>
               </div>
@@ -708,7 +823,7 @@ export function IssueForm({
           <div>
             <h2 className="card-title">Payment</h2>
             <p className="card-subtitle">
-              How the parent paid — method and reference only (no amount)
+              How the parent paid — method, reference, optional amount (KES)
             </p>
           </div>
         </div>
@@ -742,6 +857,23 @@ export function IssueForm({
               className="field"
               autoComplete="off"
             />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="issue-pay-amount">
+              Amount (KES, optional)
+            </label>
+            <input
+              id="issue-pay-amount"
+              type="number"
+              min={0}
+              step={1}
+              inputMode="numeric"
+              value={paymentAmountKes}
+              onChange={(e) => setPaymentAmountKes(e.target.value)}
+              placeholder="e.g. 4500"
+              className="field"
+            />
+            <p className="field-hint">Used for end-of-day cash-up reports</p>
           </div>
         </div>
       </section>
