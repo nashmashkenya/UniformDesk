@@ -98,6 +98,7 @@ model School {
   issueSlips         IssueSlip[]
   uniformPlans       StudentUniformPlan[]
   supplierLinks      SupplierSchool[]
+  staffCampuses      SupplierStaffCampus[]
   orders             SupplyOrder[]
   deliveries         Delivery[]
   invoices           Invoice[]
@@ -117,13 +118,14 @@ model Supplier {
   supportEmail String?
   supportPhone String?
 
-  users      User[]
-  products   SupplierProduct[]
-  schools    SupplierSchool[]
-  orders     SupplyOrder[]
-  deliveries Delivery[]
-  invoices   Invoice[]
-  payments   Payment[]
+  users         User[]
+  products      SupplierProduct[]
+  schools       SupplierSchool[]
+  staffCampuses SupplierStaffCampus[]
+  orders        SupplyOrder[]
+  deliveries    Delivery[]
+  invoices      Invoice[]
+  payments      Payment[]
 }
 
 model SupplierSchool {
@@ -138,6 +140,23 @@ model SupplierSchool {
   @@unique([supplierId, schoolId])
 }
 
+/// Campuses a supplier_staff user may issue against. Admins ignore this table (all linked schools).
+model SupplierStaffCampus {
+  id         String   @id @default(cuid())
+  supplierId String
+  userId     String
+  schoolId   String
+  createdAt  DateTime @default(now())
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  school   School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, schoolId])
+  @@index([supplierId, userId])
+  @@index([schoolId])
+}
+
 model User {
   id           String   @id @default(cuid())
   schoolId     String?
@@ -149,16 +168,17 @@ model User {
   active       Boolean  @default(true)
   createdAt    DateTime @default(now())
 
-  school              School?            @relation(fields: [schoolId], references: [id])
-  supplier            Supplier?          @relation(fields: [supplierId], references: [id])
-  receivedReceipts    InboundReceipt[]   @relation("ReceivedBy")
-  issuedSlips         IssueSlip[]        @relation("IssuedBy")
-  voidedSlips         IssueSlip[]        @relation("VoidedBy")
+  school              School?               @relation(fields: [schoolId], references: [id])
+  supplier            Supplier?             @relation(fields: [supplierId], references: [id])
+  staffCampuses       SupplierStaffCampus[]
+  receivedReceipts    InboundReceipt[]      @relation("ReceivedBy")
+  issuedSlips         IssueSlip[]           @relation("IssuedBy")
+  voidedSlips         IssueSlip[]           @relation("VoidedBy")
   ledgerEntries       StockLedgerEntry[]
-  createdOrders       SupplyOrder[]      @relation("OrderCreatedBy")
-  createdDeliveries   Delivery[]         @relation("DeliveryCreatedBy")
-  createdInvoices     Invoice[]          @relation("InvoiceCreatedBy")
-  recordedPayments    Payment[]          @relation("PaymentRecordedBy")
+  createdOrders       SupplyOrder[]         @relation("OrderCreatedBy")
+  createdDeliveries   Delivery[]            @relation("DeliveryCreatedBy")
+  createdInvoices     Invoice[]             @relation("InvoiceCreatedBy")
+  recordedPayments    Payment[]             @relation("PaymentRecordedBy")
 }
 
 model Student {

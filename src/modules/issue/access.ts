@@ -1,7 +1,7 @@
 import type { SessionUser } from "@/lib/auth";
-import { canSupplierWrite, canWrite } from "@/lib/auth";
+import { canSupplierIssue, canWrite } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { assertSupplierSchoolLink } from "@/modules/supply/orders";
+import { assertActorCampusAccess } from "@/modules/identity/supplier-campuses";
 
 export type IssueAccess = {
   schoolId: string;
@@ -12,7 +12,7 @@ export type IssueAccess = {
 /**
  * Resolve which school stock/roster an actor may issue against.
  * School users: their own school.
- * Supplier users: a linked school (co-issue during admission).
+ * Supplier users: a linked school (staff must also be campus-assigned).
  */
 export async function resolveIssueAccess(
   user: SessionUser,
@@ -36,14 +36,17 @@ export async function resolveIssueAccess(
   }
 
   if (user.tenant === "supplier" && user.supplierId) {
-    if (!canSupplierWrite(user.role)) {
+    if (!canSupplierIssue(user.role)) {
       throw new Error("No permission to issue");
     }
     const schoolId = schoolIdFromClient?.trim();
     if (!schoolId) {
       throw new Error("Select a linked school to issue at");
     }
-    await assertSupplierSchoolLink(user.supplierId, schoolId);
+    await assertActorCampusAccess(
+      { ...user, supplierId: user.supplierId },
+      schoolId,
+    );
     return {
       schoolId,
       actorUserId: user.id,
@@ -60,7 +63,10 @@ export async function assertCanViewSchoolSlip(
 ) {
   if (user.tenant === "school" && user.schoolId === schoolId) return;
   if (user.tenant === "supplier" && user.supplierId) {
-    await assertSupplierSchoolLink(user.supplierId, schoolId);
+    await assertActorCampusAccess(
+      { ...user, supplierId: user.supplierId },
+      schoolId,
+    );
     return;
   }
   throw new Error("Unauthorized");

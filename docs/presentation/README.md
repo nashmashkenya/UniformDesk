@@ -9,7 +9,6 @@ Comprehensive, dynamic walkthrough with **live screenshots** from the running ap
 - Roles & demo logins  
 - End-to-end flow (create school → catalog → DN → co-issue → still owed → reports)  
 - Supplier portal screens (admin + staff)  
-- School reporter desk screens  
 - Print & daily rhythm  
 - Click-to-reveal callouts + fade transitions  
 
@@ -29,14 +28,12 @@ python docs/presentation/build-user-manual-pptx.py
 
 Requires: Node 22+, Playwright (Chrome channel), Python `python-pptx` + `lxml`.
 
-Demo password for all seed users: `desk1234`
+Demo password: `desk1234` · Default theme: **National**
 
 | Role | Email |
 |------|--------|
 | Supplier admin | `supply@uniformdesk.co` |
 | Supplier staff | `staff@uniformdesk.co` |
-| School reporter (GFS) | `report@greenfield.school` |
-| School reporter (RVA) | `report@riverside.school` |
 
 ---
 

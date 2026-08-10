@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { cancelOrderAction } from "@/app/actions/supply";
 import { StatusPill } from "@/components/status-pill";
 import { SupplyDeliveryForm } from "@/components/supply-lines-form";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { formatMoney } from "@/lib/money";
 import { getOrder } from "@/modules/supply/orders";
 import { listSupplierProducts } from "@/modules/supply/products";
@@ -14,7 +14,7 @@ export default async function SupplierOrderDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { id } = await params;
   const [order, products] = await Promise.all([
     getOrder(id),
@@ -22,11 +22,10 @@ export default async function SupplierOrderDetailPage({
   ]);
   if (!order || order.supplierId !== user.supplierId) notFound();
 
-  const canWrite = canSupplierWrite(user.role);
   const canCancel =
-    canWrite && order.status !== "cancelled" && order.status !== "fulfilled";
+    order.status !== "cancelled" && order.status !== "fulfilled";
   const canDeliver =
-    canWrite && order.status !== "cancelled" && order.status !== "fulfilled";
+    order.status !== "cancelled" && order.status !== "fulfilled";
 
   return (
     <div className="page-stack">

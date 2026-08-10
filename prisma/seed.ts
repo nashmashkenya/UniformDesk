@@ -21,6 +21,7 @@ async function main() {
   await prisma.supplyOrder.deleteMany();
   await prisma.supplierProductSize.deleteMany();
   await prisma.supplierProduct.deleteMany();
+  await prisma.supplierStaffCampus.deleteMany();
   await prisma.supplierSchool.deleteMany();
   await prisma.stockLedgerEntry.deleteMany();
   await prisma.stockBalance.deleteMany();
@@ -90,13 +91,22 @@ async function main() {
     },
   });
 
-  await prisma.user.create({
+  const staff = await prisma.user.create({
     data: {
       supplierId: supplier.id,
       email: "staff@uniformdesk.co",
       name: "Kevin Njoroge",
       passwordHash,
       role: "supplier_staff",
+    },
+  });
+
+  // Demo: staff assigned to Greenfield only (admin still sees GFS + RVA)
+  await prisma.supplierStaffCampus.create({
+    data: {
+      supplierId: supplier.id,
+      userId: staff.id,
+      schoolId: school.id,
     },
   });
 
@@ -292,11 +302,10 @@ async function main() {
   });
 
   console.log("Seed complete");
-  console.log("Schools:", school.name, "+", riverside.name);
+  console.log("Schools (data):", school.name, "+", riverside.name);
   console.log("Supplier admin: supply@uniformdesk.co / desk1234");
-  console.log("Supplier staff: staff@uniformdesk.co / desk1234");
-  console.log("School reporter: report@greenfield.school / desk1234");
-  console.log("School reporter: report@riverside.school / desk1234");
+  console.log("Supplier staff: staff@uniformdesk.co / desk1234 (campus: GFS)");
+  console.log("Note: school operational login is closed in Phase 1");
 }
 
 main()

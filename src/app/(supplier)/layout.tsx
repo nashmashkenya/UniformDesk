@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { SupplierNav } from "@/components/supplier-nav";
 import { requireSupplierUser } from "@/lib/auth";
+import { assertSupplierStaffAllowedPath } from "@/lib/supplier-access";
 import { getSupplierBrand } from "@/modules/supply/branding";
 import { countSupplierNotifications } from "@/modules/reports/notifications";
 
@@ -9,6 +11,10 @@ export default async function SupplierLayout({
   children: React.ReactNode;
 }) {
   const user = await requireSupplierUser();
+  const headerList = await headers();
+  const pathname = headerList.get("x-ud-pathname") ?? "/supplier";
+  assertSupplierStaffAllowedPath(user, pathname);
+
   const [brand, noticeCount] = await Promise.all([
     getSupplierBrand(user.supplierId),
     countSupplierNotifications(user.supplierId),

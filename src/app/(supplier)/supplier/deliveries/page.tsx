@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { StatusPill } from "@/components/status-pill";
 import { SupplyDeliveryForm } from "@/components/supply-lines-form";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { listSupplierDeliveries } from "@/modules/supply/deliveries";
 import {
   listLinkedSchools,
@@ -14,14 +14,14 @@ export default async function SupplierDeliveriesPage({
 }: {
   searchParams: Promise<{ schoolId?: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { schoolId } = await searchParams;
   const [deliveries, links, products] = await Promise.all([
     listSupplierDeliveries(user.supplierId),
     listLinkedSchools(user.supplierId),
     listSupplierProducts(user.supplierId),
   ]);
-  const canWrite = canSupplierWrite(user.role);
+  const canWrite = true;
   const filtered = schoolId
     ? deliveries.filter((d) => d.schoolId === schoolId)
     : deliveries;
@@ -47,7 +47,7 @@ export default async function SupplierDeliveriesPage({
       </section>
 
       {canWrite && (
-        <section className="card">
+        <section className="card national-panel">
           <div className="card-header">
             <div>
               <h2 className="card-title text-base">New delivery</h2>

@@ -1,4 +1,4 @@
-export type ThemeId = "fluent" | "fluent-dark" | "colorful";
+export type ThemeId = "national" | "fluent" | "fluent-dark" | "colorful";
 
 export type ThemeMeta = {
   id: ThemeId;
@@ -9,6 +9,13 @@ export type ThemeMeta = {
 };
 
 export const THEMES: ThemeMeta[] = [
+  {
+    id: "national",
+    label: "National",
+    blurb: "Institutional green & gold",
+    mode: "light",
+    swatch: ["#F7F8F5", "#0B5C3B", "#1A1A1A", "#C4A35A"],
+  },
   {
     id: "fluent",
     label: "Fluent",
@@ -32,10 +39,15 @@ export const THEMES: ThemeMeta[] = [
   },
 ];
 
-export const DEFAULT_THEME: ThemeId = "fluent";
+export const DEFAULT_THEME: ThemeId = "national";
 
 export function isThemeId(value: string | null | undefined): value is ThemeId {
-  return value === "fluent" || value === "fluent-dark" || value === "colorful";
+  return (
+    value === "national" ||
+    value === "fluent" ||
+    value === "fluent-dark" ||
+    value === "colorful"
+  );
 }
 
 export function normalizeThemeId(value: string | null | undefined): ThemeId {

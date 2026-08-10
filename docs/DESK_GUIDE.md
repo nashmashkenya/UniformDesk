@@ -1,17 +1,18 @@
-# UniformDesk — desk & supplier guide
+# UniformDesk — supplier desk guide
 
-Day-to-day operations for **school reporters** and **supplier** staff. For go-live / Postgres, see [`PRODUCTION.md`](./PRODUCTION.md). For the analyst PPT, see [`presentation/README.md`](./presentation/README.md).
+Day-to-day operations for **supplier admin** and **supplier staff**. For go-live / Postgres, see [`PRODUCTION.md`](./PRODUCTION.md). For the analyst PPT, see [`presentation/README.md`](./presentation/README.md).
 
 **Supplier meeting walkthrough:** [`SUPPLIER_DEMO.md`](./SUPPLIER_DEMO.md) (live demo script + logins).  
 **Downloadable PDF:** [`UniformDesk_Supplier_Guide.pdf`](./UniformDesk_Supplier_Guide.pdf) — rebuild with `python docs/build-supplier-guide-pdf.py`.
 
-Demo password for all seed users: `desk1234`.
+Demo password for seed users: `desk1234`.
 
 | Role | Login | Home |
 |------|-------|------|
 | Supplier admin | `supply@uniformdesk.co` | `/supplier` |
 | Supplier staff | `staff@uniformdesk.co` | `/supplier` |
-| School reporter | `report@greenfield.school` | `/` |
+
+School operational login is closed in Phase 1. Schools are data sites; your team co-issues and runs supply. Follow-up school reports can come later.
 
 ---
 
@@ -19,117 +20,88 @@ Demo password for all seed users: `desk1234`.
 
 | Role | Owns | Typical work |
 |------|------|----------------|
-| `supplier_admin` | Server, catalog, school links, branding | Catalog, schools portfolio, deliveries, invoices, co-issue, reports |
-| `supplier_staff` | Ops under the supplier | Pack/dispatch, invoices, co-issue, reports |
-| `school_reporter` | Campus stock & admission issue | Issue desk, stock take, receive DN, campus reports |
+| `supplier_admin` | Full system (super user) | Schools, products, kits, deliveries, invoices, team, branding, monitor, co-issue |
+| `supplier_staff` | Issue desk | Co-issue, still owed, basic reports / activity / search |
 
-School purchase routes (orders / reorder / school invoices / catalog admin) are **retired** — they redirect home. Supply buying stays on the supplier side.
-
----
-
-## School desk
-
-### Issue (`/issue`)
-
-1. Find or key in a student (admission no, name, class).
-2. Choose kit / lines and quantities.
-3. Record **payment method + reference** (no amount).
-4. Confirm — no parent signature / slip required.
-5. Stock decreases; shortages open **Still to receive**.
-
-### Still to receive (`/incomplete`)
-
-- Queue of incomplete kits.
-- **Issue what’s left** returns to the issue desk for that student.
-- **Print list** for a paper follow-up queue.
-
-### Stock (`/stock`)
-
-- On-hand balances + recent ledger.
-- **Stock take / adjust** with a reason (e.g. `Stock take`, `Damage`).
-- **Print stock** for counting sheets.
-- Supplier can **view** these balances (read-only) under supplier reports.
-
-### Reports (`/reports`)
-
-- Issued today (with payment method/ref when recorded).
-- Shortage lines.
-- Audit CSV export (when the role allows).
-- Links to Still owed and Stock take.
-- **Print report** — browser print; nav and export form are hidden.
-
-### Deliveries (`/deliveries`)
-
-- Receive against a supplier DN (posts ledger).
-- **Print DN** on the detail page.
+Default visual theme: **National** (institutional green & gold). Switch anytime from the theme menu.
 
 ---
 
 ## Supplier portal
 
-### Co-issue (`/supplier/issue`)
+### Home (`/supplier`)
 
-- Same admission flow as the school desk, against a **linked** school’s stock and roster.
-- Slip stays on the school; issuer is the supplier user.
-- Use when supplier staff are on campus at admission.
+- **Admin** — national supply monitor: schools, open deliveries, unpaid invoices, team size, portfolio.
+- **Staff** — issue desk focus with co-issue / still owed / reports shortcuts.
 
-### Reports (`/supplier/reports`)
+### Team (`/supplier/team`) — admin only
 
-Pick a linked school, then:
+- Create admin or staff users.
+- Reset passwords.
+- Deactivate users (keep at least one active admin).
+- **Assign campuses to staff** (one or many). Staff only issue / still owed / report on assigned schools.
+  - One campus → no school picker (auto-selected)
+  - Several → picker shows only those schools
+  - None → issue blocked until assigned
+- Admins always see all linked schools.
 
-| View | Contents |
-|------|----------|
-| Issued today | Who received what, payment method/ref, issuer |
-| Stock on hand | Read-only campus balances (school does stock take) |
+### School catalogue & kits (`/supplier/schools/[id]/catalog`) — admin
 
-- Summary chips: issued today, still owed, stock lines, low stock.
-- Link to **Still owed** for the full incomplete list.
-- **Print report** prints the active view (issued or stock) plus summary.
+- Each linked school has its **own** items, sizes, and admission kits.
+- SKUs should match supplier products so DN receive maps cleanly.
+- After **Create school**, set up the catalogue here.
+
+### Co-issue (`/supplier/issue`) — admin + staff
+
+- Admission issue against a **linked** school’s stock and roster.
+- Payment method + reference (no amount).
+- Stock decreases; shortages open **Still owed**.
 
 ### Still owed (`/supplier/incomplete`)
 
-- Incomplete kits for a linked school.
-- **Print list** for campus follow-up.
+- Queue of incomplete kits.
+- **Issue what’s left** returns to the issue desk for that student.
 
-### Supply docs (print packs)
+### Reports (`/supplier/reports`)
 
-| Document | Where | Button |
-|----------|-------|--------|
-| Delivery note | `/supplier/deliveries/[id]` | Print DN |
-| Invoice | `/supplier/invoices/[id]` | Print invoice |
+- Issued today and campus stock (view-only).
+- Links to Still owed.
+- **Print report** — browser print; nav is hidden.
 
-Browser print hides nav, payments, and action buttons. Same pattern as reports.
+### Products (`/supplier/catalog`) — admin
 
----
+- Master SKUs and prices for deliveries and invoices.
 
-## Printing
+### Orders / Deliveries / Invoices — admin
 
-All printable surfaces use the shared **Print** control (`window.print()`):
+- School POs, pack & dispatch, bill & collect (including M-Pesa sandbox).
 
-1. Open the report or document.
-2. Choose school / view if needed (supplier).
-3. Click **Print report**, **Print list**, **Print stock**, **Print DN**, or **Print invoice**.
-4. Use the browser print dialog (PDF or paper).
+### Branding (`/supplier/branding`) — admin
 
-Printed pages include a title banner (tenant, school, timestamp). Screen-only chrome (nav, school picker, view toggles, CTAs, audit export) is hidden.
+- White-label mark, color, and support contacts.
 
 ---
 
-## Payment & audit notes
+## Print notes
 
-- Desk payment stores **method + reference only** — no live payment rails or amount field.
-- Internal issue records remain for stock, still-to-receive, and staff audit.
-- School `/reports` can export a CSV of issue lines (date range) for auditors.
+- Prefer **A4 portrait** for slips, DNs, invoices, and report lists.
+- Use the on-page **Print** control; chrome UI is hidden in print CSS.
 
 ---
 
 ## Quick route map
 
-| Need | School | Supplier |
-|------|--------|----------|
-| Issue uniforms | `/issue` | `/supplier/issue` |
-| Incomplete kits | `/incomplete` | `/supplier/incomplete` |
-| Stock / stock take | `/stock` | (view via `/supplier/reports` → Stock) |
-| Daily reports | `/reports` | `/supplier/reports` |
-| Receive / pack DN | `/deliveries` | `/supplier/deliveries` |
-| Invoices | — | `/supplier/invoices` |
+| Path | Who |
+|------|-----|
+| `/login` | Supplier admin / staff |
+| `/supplier` | Both |
+| `/supplier/issue` | Both |
+| `/supplier/incomplete` | Both |
+| `/supplier/reports` | Both |
+| `/supplier/team` | Admin |
+| `/supplier/schools` | Admin |
+| `/supplier/catalog` | Admin |
+| `/supplier/orders` | Admin |
+| `/supplier/deliveries` | Admin |
+| `/supplier/invoices` | Admin |
+| `/supplier/branding` | Admin |

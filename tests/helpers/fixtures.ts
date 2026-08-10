@@ -92,6 +92,14 @@ export async function seedSupplyChain() {
     },
   });
 
+  await prisma.supplierStaffCampus.create({
+    data: {
+      supplierId: supplier.id,
+      userId: supplierStaff.id,
+      schoolId: desk.school.id,
+    },
+  });
+
   const product = await prisma.supplierProduct.create({
     data: {
       supplierId: supplier.id,

@@ -4,7 +4,7 @@ import { createSchoolForSupplier } from "@/modules/supply/portfolio";
 import { seedSupplyChain } from "./helpers/fixtures";
 
 describe("create school for supplier", () => {
-  it("creates school, link, and reporter", async () => {
+  it("creates school and link without school reporter login", async () => {
     const chain = await seedSupplyChain();
     const code = `T${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
@@ -12,13 +12,9 @@ describe("create school for supplier", () => {
       supplierId: chain.supplier.id,
       name: "Test Senior School",
       code,
-      reporterName: "Desk Reporter",
-      reporterEmail: `report-${code.toLowerCase()}@test.school`,
-      reporterPassword: "desk1234x",
     });
 
     expect(result.school.code).toBe(code);
-    expect(result.reporter.role).toBe("school_reporter");
 
     const link = await prisma.supplierSchool.findFirst({
       where: {
@@ -27,6 +23,11 @@ describe("create school for supplier", () => {
       },
     });
     expect(link).toBeTruthy();
+
+    const schoolUsers = await prisma.user.count({
+      where: { schoolId: result.school.id },
+    });
+    expect(schoolUsers).toBe(0);
   });
 
   it("rejects duplicate school codes", async () => {
@@ -36,9 +37,6 @@ describe("create school for supplier", () => {
         supplierId: chain.supplier.id,
         name: "Dup School",
         code: chain.school.code,
-        reporterName: "R",
-        reporterEmail: `dup-${Date.now()}@test.school`,
-        reporterPassword: "desk1234x",
       }),
     ).rejects.toThrow(/already in use/i);
   });

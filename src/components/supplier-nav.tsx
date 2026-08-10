@@ -18,12 +18,34 @@ type NavItem = {
   icon: () => React.ReactNode;
 };
 
-const primary: NavItem[] = [
-  { href: "/supplier", label: "Home", desc: "Supply overview", icon: NavIcons.home },
+const staffPrimary: NavItem[] = [
+  { href: "/supplier", label: "Home", desc: "Desk overview", icon: NavIcons.home },
   {
     href: "/supplier/issue",
-    label: "Co-issue",
-    desc: "Admission issue with school",
+    label: "Issue",
+    desc: "Issue uniforms on campus",
+    icon: NavIcons.issue,
+  },
+  {
+    href: "/supplier/incomplete",
+    label: "Still owed",
+    desc: "Incomplete uniforms",
+    icon: NavIcons.shortage,
+  },
+  {
+    href: "/supplier/reports",
+    label: "Reports",
+    desc: "Issued today",
+    icon: NavIcons.reports,
+  },
+];
+
+const adminPrimary: NavItem[] = [
+  { href: "/supplier", label: "Home", desc: "Operations monitor", icon: NavIcons.home },
+  {
+    href: "/supplier/issue",
+    label: "Issue",
+    desc: "Co-issue on campus",
     icon: NavIcons.issue,
   },
   {
@@ -33,19 +55,46 @@ const primary: NavItem[] = [
     icon: NavIcons.reports,
   },
   {
-    href: "/supplier/deliveries",
-    label: "Deliveries",
-    desc: "Pack & dispatch",
-    icon: NavIcons.deliveries,
+    href: "/supplier/schools",
+    label: "Schools",
+    desc: "Portfolio & catalogues",
+    icon: NavIcons.schools,
   },
 ];
 
-const moreLinksAll: NavItem[] = [
+const staffMore: NavItem[] = [
+  {
+    href: "/supplier/activity",
+    label: "Activity",
+    desc: "Recent desk activity",
+    icon: NavIcons.activity,
+  },
+  {
+    href: "/supplier/notifications",
+    label: "Notifications",
+    desc: "Alerts",
+    icon: NavIcons.bell,
+  },
+  {
+    href: "/supplier/search",
+    label: "Search",
+    desc: "Find students & slips",
+    icon: NavIcons.search,
+  },
+];
+
+const adminMore: NavItem[] = [
   {
     href: "/supplier/incomplete",
     label: "Still owed",
     desc: "Incomplete uniforms",
-    icon: NavIcons.reports,
+    icon: NavIcons.shortage,
+  },
+  {
+    href: "/supplier/deliveries",
+    label: "Deliveries",
+    desc: "Pack & dispatch",
+    icon: NavIcons.deliveries,
   },
   {
     href: "/supplier/orders",
@@ -62,7 +111,7 @@ const moreLinksAll: NavItem[] = [
   {
     href: "/supplier/activity",
     label: "Activity",
-    desc: "Orders, DN, invoices, payments",
+    desc: "Full ground monitor",
     icon: NavIcons.activity,
   },
   {
@@ -78,21 +127,21 @@ const moreLinksAll: NavItem[] = [
     icon: NavIcons.search,
   },
   {
-    href: "/supplier/schools",
-    label: "Schools",
-    desc: "Multi-school portfolio",
-    icon: NavIcons.schools,
+    href: "/supplier/catalog",
+    label: "Products",
+    desc: "Master SKUs & prices",
+    icon: NavIcons.catalog,
   },
   {
-    href: "/supplier/catalog",
-    label: "Catalog",
-    desc: "Products & SKUs",
-    icon: NavIcons.catalog,
+    href: "/supplier/team",
+    label: "Team",
+    desc: "Users, passwords, access",
+    icon: NavIcons.users,
   },
   {
     href: "/supplier/branding",
     label: "Branding",
-    desc: "White-label look",
+    desc: "Organisation look",
     icon: NavIcons.branding,
   },
 ];
@@ -138,10 +187,9 @@ export function SupplierNav({
   const account = useMenu();
   const [mobileMore, setMobileMore] = useState(false);
   const mark = brandMark || "UD";
-  const moreLinks =
-    user.role === "supplier_admin"
-      ? moreLinksAll
-      : moreLinksAll.filter((l) => l.href !== "/supplier/branding");
+  const isAdmin = user.role === "supplier_admin";
+  const primary = isAdmin ? adminPrimary : staffPrimary;
+  const moreLinks = isAdmin ? adminMore : staffMore;
   const noticeLabel =
     noticeCount > 99 ? "99+" : noticeCount > 0 ? String(noticeCount) : null;
 

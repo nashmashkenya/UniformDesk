@@ -8,7 +8,7 @@ import {
 import { DeliveryNoteSheet } from "@/components/delivery-note-sheet";
 import { PrintButton } from "@/components/print-button";
 import { StatusPill } from "@/components/status-pill";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { getDelivery } from "@/modules/supply/deliveries";
 
 export default async function SupplierDeliveryDetailPage({
@@ -16,15 +16,14 @@ export default async function SupplierDeliveryDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { id } = await params;
   const delivery = await getDelivery(id);
   if (!delivery || delivery.supplierId !== user.supplierId) notFound();
 
-  const canWrite = canSupplierWrite(user.role);
-  const showDispatch = canWrite && delivery.status === "packed";
+  const showDispatch = delivery.status === "packed";
   const canInvoice =
-    canWrite && !delivery.invoice && delivery.status !== "cancelled";
+    !delivery.invoice && delivery.status !== "cancelled";
   const fromName = delivery.supplier.brandName || delivery.supplier.name;
 
   return (

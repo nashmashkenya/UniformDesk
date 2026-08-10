@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { StatusPill } from "@/components/status-pill";
 import { formatMoney } from "@/lib/money";
-import { requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { listSupplierInvoices } from "@/modules/supply/invoices";
 import { listLinkedSchools } from "@/modules/supply/products";
 
@@ -11,7 +11,7 @@ export default async function SupplierInvoicesPage({
 }: {
   searchParams: Promise<{ schoolId?: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { schoolId } = await searchParams;
   const [invoices, links] = await Promise.all([
     listSupplierInvoices(user.supplierId),

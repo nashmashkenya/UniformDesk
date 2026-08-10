@@ -9,10 +9,15 @@ import {
 const initial: CatalogState = {};
 const categories = [
   "shirt",
+  "blouse",
   "trouser",
-  "sweater",
-  "shoes",
   "skirt",
+  "sweater",
+  "tunic",
+  "dress",
+  "shoes",
+  "socks",
+  "tie",
   "other",
 ] as const;
 

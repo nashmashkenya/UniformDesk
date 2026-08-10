@@ -1,9 +1,16 @@
-import Link from "next/link";
 import { IssueDeskShell } from "@/components/issue-desk-shell";
+import { SupplierCampusEmptyState } from "@/components/supplier-campus-gate";
 import { SupplierSchoolSelect } from "@/components/supplier-school-select";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import {
+  canSupplierIssue,
+  canSupplierManage,
+  requireSupplierUser,
+} from "@/lib/auth";
+import {
+  listActorCampuses,
+  pickCampus,
+} from "@/modules/identity/supplier-campuses";
 import { loadIssueDeskData } from "@/modules/issue/issue-desk";
-import { listLinkedSchools } from "@/modules/supply/products";
 
 export default async function SupplierIssuePage({
   searchParams,
@@ -11,7 +18,7 @@ export default async function SupplierIssuePage({
   searchParams: Promise<{ schoolId?: string }>;
 }) {
   const user = await requireSupplierUser();
-  if (!canSupplierWrite(user.role)) {
+  if (!canSupplierIssue(user.role)) {
     return (
       <div className="page-stack">
         <h1 className="page-title">Co-issue</h1>
@@ -21,35 +28,13 @@ export default async function SupplierIssuePage({
   }
 
   const { schoolId: schoolIdParam } = await searchParams;
-  const links = await listLinkedSchools(user.supplierId);
-  const selected =
-    links.find((l) => l.schoolId === schoolIdParam)?.school ??
-    links[0]?.school ??
-    null;
+  const campuses = await listActorCampuses(user);
+  const selected = pickCampus(campuses, schoolIdParam);
+  const isAdmin = canSupplierManage(user.role);
 
   if (!selected) {
     return (
-      <div className="page-stack">
-        <header className="page-header">
-          <div className="page-header-main">
-            <h1 className="page-title">Co-issue</h1>
-            <p className="page-sub">
-              Issue uniforms at a linked school during admission, alongside
-              school staff.
-            </p>
-          </div>
-        </header>
-        <section className="card">
-          <div className="card-body">
-            <p className="text-sm text-[var(--muted)]">
-              Link a school first, then return here to issue.
-            </p>
-            <Link href="/supplier/schools" className="btn btn-primary mt-3">
-              Schools portfolio
-            </Link>
-          </div>
-        </section>
-      </div>
+      <SupplierCampusEmptyState title="Co-issue desk" isAdmin={isAdmin} />
     );
   }
 
@@ -65,25 +50,32 @@ export default async function SupplierIssuePage({
         <div className="page-header-main">
           <h1 className="page-title">Co-issue desk</h1>
           <p className="page-sub">
-            Admission-day issue with school staff — student, items, payment
-            method and reference. No parent slip. Stock comes from the school
-            ledger.
+            {campuses.length === 1
+              ? `Issuing at ${selected.name} (${selected.code}).`
+              : "Choose your campus, then issue — student, items, payment method and reference."}{" "}
+            Stock comes from the school ledger.
           </p>
         </div>
+        {campuses.length === 1 && (
+          <span className="chip chip-accent">
+            {selected.code}
+          </span>
+        )}
       </header>
 
-      {links.length > 1 && (
-        <section className="card no-print">
+      {campuses.length > 1 && (
+        <section className="card national-panel no-print">
           <div className="card-body">
             <SupplierSchoolSelect
               basePath="/supplier/issue"
               value={selected.id}
-              schools={links.map((l) => ({
-                id: l.school.id,
-                name: l.school.name,
-                code: l.school.code,
-              }))}
+              schools={campuses}
             />
+            <p className="field-hint mt-2">
+              {isAdmin
+                ? "Admins can issue at every linked school."
+                : "Only campuses assigned to you appear here."}
+            </p>
           </div>
         </section>
       )}

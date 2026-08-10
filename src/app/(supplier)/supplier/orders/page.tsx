@@ -2,7 +2,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { StatusPill } from "@/components/status-pill";
 import { SupplyOrderForm } from "@/components/supply-lines-form";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { listSupplierOrders } from "@/modules/supply/orders";
 import {
   listLinkedSchools,
@@ -14,14 +14,14 @@ export default async function SupplierOrdersPage({
 }: {
   searchParams: Promise<{ schoolId?: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { schoolId } = await searchParams;
   const [orders, links, products] = await Promise.all([
     listSupplierOrders(user.supplierId),
     listLinkedSchools(user.supplierId),
     listSupplierProducts(user.supplierId),
   ]);
-  const canWrite = canSupplierWrite(user.role);
+  const canWrite = true;
   const filtered = schoolId
     ? orders.filter((o) => o.schoolId === schoolId)
     : orders;
@@ -47,7 +47,7 @@ export default async function SupplierOrdersPage({
       </section>
 
       {canWrite && (
-        <section className="card">
+        <section className="card national-panel">
           <div className="card-header">
             <div>
               <h2 className="card-title text-base">Create order</h2>

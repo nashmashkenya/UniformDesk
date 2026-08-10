@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
+  canSupplierManage,
   canSupplierWrite,
   canWrite,
   requireSchoolUser,
@@ -39,8 +40,8 @@ export async function createSupplierProductAction(
 ): Promise<SupplyState> {
   try {
     const user = await requireSupplierUser();
-    if (!canSupplierWrite(user.role)) {
-      return { error: "No permission" };
+    if (!canSupplierManage(user.role)) {
+      return { error: "Only the supplier admin can manage products" };
     }
     const price = Number(formData.get("unitPrice") ?? 0);
     await createSupplierProduct({
@@ -76,7 +77,7 @@ export async function createOrderAction(
 
     if (asSupplier) {
       const user = await requireSupplierUser();
-      if (!canSupplierWrite(user.role)) return { error: "No permission" };
+      if (!canSupplierManage(user.role)) return { error: "No permission" };
       const order = await createOrder({
         supplierId: user.supplierId,
         schoolId,
@@ -117,7 +118,7 @@ export async function createDeliveryAction(
   let deliveryId = "";
   try {
     const user = await requireSupplierUser();
-    if (!canSupplierWrite(user.role)) return { error: "No permission" };
+    if (!canSupplierManage(user.role)) return { error: "No permission" };
     const lines = parseLines(String(formData.get("linesJson") ?? "[]"));
     const delivery = await createDelivery({
       supplierId: user.supplierId,
@@ -142,7 +143,7 @@ export async function createDeliveryAction(
 
 export async function dispatchDeliveryAction(formData: FormData) {
   const user = await requireSupplierUser();
-  if (!canSupplierWrite(user.role)) throw new Error("No permission");
+  if (!canSupplierManage(user.role)) throw new Error("No permission");
   const deliveryId = String(formData.get("deliveryId") ?? "");
   await dispatchDelivery({
     deliveryId,
@@ -182,7 +183,7 @@ export async function receiveDeliveryAction(
 
 export async function createInvoiceAction(formData: FormData) {
   const user = await requireSupplierUser();
-  if (!canSupplierWrite(user.role)) throw new Error("No permission");
+  if (!canSupplierManage(user.role)) throw new Error("No permission");
   const deliveryId = String(formData.get("deliveryId") ?? "");
   const invoice = await createInvoiceFromDelivery({
     supplierId: user.supplierId,
@@ -199,7 +200,7 @@ export async function createInvoiceAction(formData: FormData) {
 
 export async function markInvoicePaidAction(formData: FormData) {
   const user = await requireSupplierUser();
-  if (!canSupplierWrite(user.role)) throw new Error("No permission");
+  if (!canSupplierManage(user.role)) throw new Error("No permission");
   const invoiceId = String(formData.get("invoiceId") ?? "");
   const methodRaw = String(formData.get("method") ?? "cash");
   const method =
@@ -221,6 +222,7 @@ export async function cancelOrderAction(formData: FormData) {
   const orderId = String(formData.get("orderId") ?? "");
   if (asSupplier) {
     const user = await requireSupplierUser();
+    if (!canSupplierManage(user.role)) throw new Error("No permission");
     await cancelOrder({ orderId, supplierId: user.supplierId });
     revalidatePath("/supplier/orders");
     revalidatePath(`/supplier/orders/${orderId}`);

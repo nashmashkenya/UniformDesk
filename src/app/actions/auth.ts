@@ -7,6 +7,7 @@ import {
   destroySession,
   getSessionUser,
   homePathForUser,
+  isSupplierLoginRole,
   verifyPassword,
 } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -42,6 +43,13 @@ export async function loginAction(
   const ok = await verifyPassword(parsed.data.password, user.passwordHash);
   if (!ok) {
     return { error: "Invalid email or password" };
+  }
+
+  if (!isSupplierLoginRole(user.role)) {
+    return {
+      error:
+        "School desk login is closed. Sign in as supplier admin or staff.",
+    };
   }
 
   await createSession(user.id);

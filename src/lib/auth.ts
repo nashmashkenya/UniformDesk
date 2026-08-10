@@ -145,8 +145,30 @@ export function canManage(role: Role) {
   return role === "school_admin";
 }
 
-export function canSupplierWrite(role: Role) {
+export function isSupplierAdmin(role: Role) {
+  return role === "supplier_admin";
+}
+
+export function isSupplierStaff(role: Role) {
+  return role === "supplier_staff";
+}
+
+/** Co-issue, still owed, light reports — admin + staff. */
+export function canSupplierIssue(role: Role) {
   return role === "supplier_admin" || role === "supplier_staff";
+}
+
+/**
+ * @deprecated Prefer canSupplierIssue / canSupplierManage.
+ * Kept for call sites that mean “any supplier operator”.
+ */
+export function canSupplierWrite(role: Role) {
+  return canSupplierIssue(role);
+}
+
+/** Super-user: schools, products, kits, team, branding, supply docs. */
+export function canSupplierManage(role: Role) {
+  return role === "supplier_admin";
 }
 
 export function isSchoolOperator(role: Role) {
@@ -161,4 +183,9 @@ export function canViewReports(role: Role) {
 export function homePathForUser(user: SessionUser) {
   if (user.tenant === "supplier") return "/supplier";
   return "/";
+}
+
+/** Phase 1: operational logins are supplier-only. */
+export function isSupplierLoginRole(role: Role) {
+  return role === "supplier_admin" || role === "supplier_staff";
 }

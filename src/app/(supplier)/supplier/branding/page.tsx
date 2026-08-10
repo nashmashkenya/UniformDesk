@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { BrandingForm } from "@/components/branding-form";
-import { requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { getSupplierBrand } from "@/modules/supply/branding";
 
 export default async function SupplierBrandingPage() {
-  const user = await requireSupplierUser();
-  if (user.role !== "supplier_admin") notFound();
+  const user = await requireSupplierAdmin();
 
   const brand = await getSupplierBrand(user.supplierId);
   if (!brand) notFound();
@@ -19,7 +18,7 @@ export default async function SupplierBrandingPage() {
         </p>
       </section>
 
-      <section className="card">
+      <section className="card national-panel">
         <div className="card-header">
           <div className="flex items-center gap-3">
             <span

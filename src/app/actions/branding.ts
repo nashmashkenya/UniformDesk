@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { requireSupplierUser } from "@/lib/auth";
 import { updateSupplierBrand } from "@/modules/supply/branding";
 import {
@@ -66,6 +67,7 @@ export async function createSchoolAction(
   _prev: BrandState,
   formData: FormData,
 ): Promise<BrandState> {
+  let schoolId = "";
   try {
     const user = await requireSupplierUser();
     if (user.role !== "supplier_admin") {
@@ -75,21 +77,16 @@ export async function createSchoolAction(
       supplierId: user.supplierId,
       name: String(formData.get("name") ?? ""),
       code: String(formData.get("code") ?? ""),
-      reporterName: String(formData.get("reporterName") ?? ""),
-      reporterEmail: String(formData.get("reporterEmail") ?? ""),
-      reporterPassword: String(formData.get("reporterPassword") ?? ""),
     });
+    schoolId = result.school.id;
     revalidatePath("/supplier");
     revalidatePath("/supplier/schools");
     revalidatePath("/supplier/issue");
     revalidatePath("/supplier/orders");
-    return {
-      ok: true,
-      message: `Created ${result.school.name} (${result.school.code}) and reporter ${result.reporter.email}`,
-    };
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : "Could not create school",
     };
   }
+  redirect(`/supplier/schools/${schoolId}/catalog`);
 }

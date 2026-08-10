@@ -10,7 +10,7 @@ import {
 } from "@/components/payment-forms";
 import { PrintButton } from "@/components/print-button";
 import { StatusPill } from "@/components/status-pill";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { formatMoney } from "@/lib/money";
 import { appBaseUrl } from "@/lib/url";
 import { getInvoice } from "@/modules/supply/invoices";
@@ -20,14 +20,14 @@ export default async function SupplierInvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const { id } = await params;
   const invoice = await getInvoice(id);
   if (!invoice || invoice.supplierId !== user.supplierId || !invoice.delivery) {
     notFound();
   }
   const delivery = invoice.delivery;
-  const canCollect = canSupplierWrite(user.role) && invoice.status === "issued";
+  const canCollect = invoice.status === "issued";
   const fromName = invoice.supplier.brandName || invoice.supplier.name;
 
   const paidCents = invoice.payments

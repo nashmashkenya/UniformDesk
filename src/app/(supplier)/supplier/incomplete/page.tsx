@@ -2,10 +2,14 @@ import Link from "next/link";
 import { PrintButton } from "@/components/print-button";
 import { ReportPrintBanner } from "@/components/report-print-banner";
 import { StillOwedList } from "@/components/still-owed-list";
+import { SupplierCampusEmptyState } from "@/components/supplier-campus-gate";
 import { SupplierSchoolSelect } from "@/components/supplier-school-select";
-import { requireSupplierUser } from "@/lib/auth";
+import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
+import {
+  listActorCampuses,
+  pickCampus,
+} from "@/modules/identity/supplier-campuses";
 import { listStudentsStillOwed } from "@/modules/issue/outstanding";
-import { listLinkedSchools } from "@/modules/supply/products";
 
 export default async function SupplierIncompletePage({
   searchParams,
@@ -14,21 +18,13 @@ export default async function SupplierIncompletePage({
 }) {
   const user = await requireSupplierUser();
   const { schoolId: schoolIdParam } = await searchParams;
-  const links = await listLinkedSchools(user.supplierId);
-  const selected =
-    links.find((l) => l.schoolId === schoolIdParam)?.school ??
-    links[0]?.school ??
-    null;
+  const campuses = await listActorCampuses(user);
+  const selected = pickCampus(campuses, schoolIdParam);
+  const isAdmin = canSupplierManage(user.role);
 
   if (!selected) {
     return (
-      <div className="page-stack">
-        <h1 className="page-title">Still to receive</h1>
-        <p className="page-sub">Link a school to see incomplete uniforms.</p>
-        <Link href="/supplier/schools" className="btn btn-primary mt-3">
-          Schools
-        </Link>
-      </div>
+      <SupplierCampusEmptyState title="Still to receive" isAdmin={isAdmin} />
     );
   }
 
@@ -46,21 +42,20 @@ export default async function SupplierIncompletePage({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="chip chip-warn">{rows.length}</span>
+          {campuses.length === 1 && (
+            <span className="chip chip-accent">{selected.code}</span>
+          )}
           <PrintButton label="Print list" />
         </div>
       </header>
 
-      {links.length > 1 && (
-        <section className="card no-print">
+      {campuses.length > 1 && (
+        <section className="card national-panel no-print">
           <div className="card-body">
             <SupplierSchoolSelect
               basePath="/supplier/incomplete"
               value={selected.id}
-              schools={links.map((l) => ({
-                id: l.school.id,
-                name: l.school.name,
-                code: l.school.code,
-              }))}
+              schools={campuses}
             />
           </div>
         </section>

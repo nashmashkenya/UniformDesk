@@ -38,8 +38,8 @@ export default async function LoginPage() {
             </div>
             <h1 className="login-brand-title">UniformDesk</h1>
             <p className="login-brand-line">
-              Uniform stock and admission issue for Kenyan senior schools —
-              run with your supplier at the desk.
+              National supplier portal for uniform stock, campus co-issue, and
+              school follow-up reports.
             </p>
           </section>
 
@@ -48,7 +48,7 @@ export default async function LoginPage() {
               <header className="login-glass-header">
                 <h2 className="login-glass-title">Sign in</h2>
                 <p className="login-glass-sub">
-                  Supplier admin, staff, or school reporter
+                  Supplier admin or staff
                 </p>
               </header>
               <div className="login-glass-body">
@@ -64,9 +64,8 @@ export default async function LoginPage() {
                 <details className="login-demo">
                   <summary>Demo accounts</summary>
                   <div className="login-demo-list">
-                    <div>Supplier · supply@uniformdesk.co / desk1234</div>
+                    <div>Admin · supply@uniformdesk.co / desk1234</div>
                     <div>Staff · staff@uniformdesk.co / desk1234</div>
-                    <div>School · report@greenfield.school / desk1234</div>
                   </div>
                 </details>
               </footer>

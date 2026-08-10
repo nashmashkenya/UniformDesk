@@ -35,12 +35,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const initial = stored
-      ? normalizeThemeId(stored)
-      : prefersDark
-        ? "fluent-dark"
-        : DEFAULT_THEME;
+    const initial = stored ? normalizeThemeId(stored) : DEFAULT_THEME;
     setThemeState(initial);
     applyTheme(initial);
   }, []);

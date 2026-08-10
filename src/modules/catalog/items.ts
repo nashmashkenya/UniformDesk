@@ -2,10 +2,15 @@ import { prisma } from "@/lib/db";
 
 const CATEGORIES = [
   "shirt",
+  "blouse",
   "trouser",
-  "sweater",
-  "shoes",
   "skirt",
+  "sweater",
+  "tunic",
+  "dress",
+  "shoes",
+  "socks",
+  "tie",
   "other",
 ] as const;
 

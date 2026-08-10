@@ -25,7 +25,7 @@ export const viewport: Viewport = {
   /* Allow pinch-zoom for accessibility; iOS field zoom is handled via 16px inputs */
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#faf9f8" },
+    { media: "(prefers-color-scheme: light)", color: "#0b5c3b" },
     { media: "(prefers-color-scheme: dark)", color: "#1f1f1f" },
   ],
 };
@@ -35,10 +35,10 @@ const themeBootScript = `
   try {
     const stored = localStorage.getItem('ud-theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    let theme = 'fluent';
-    if (stored === 'fluent' || stored === 'fluent-dark' || stored === 'colorful') theme = stored;
+    let theme = 'national';
+    if (stored === 'national' || stored === 'fluent' || stored === 'fluent-dark' || stored === 'colorful') theme = stored;
     else if (stored === 'evening' || stored === 'noir' || stored === 'midnight' || stored === 'dark' || (!stored && prefersDark)) theme = 'fluent-dark';
-    else if (stored) theme = 'fluent';
+    else if (stored) theme = 'national';
     document.documentElement.setAttribute('data-theme', theme);
   } catch {}
 })();

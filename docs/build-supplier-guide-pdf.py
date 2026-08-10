@@ -24,11 +24,11 @@ from reportlab.platypus import (
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "UniformDesk_Supplier_Guide.pdf"
 
-TEAL = colors.HexColor("#0F6E56")
-NAVY = colors.HexColor("#0B1F1C")
-MUTED = colors.HexColor("#5C6B66")
-LINE = colors.HexColor("#D0D7D4")
-SOFT = colors.HexColor("#E6F4EF")
+TEAL = colors.HexColor("#0B5C3B")
+NAVY = colors.HexColor("#1A1A1A")
+MUTED = colors.HexColor("#5A635C")
+LINE = colors.HexColor("#D5DDD4")
+SOFT = colors.HexColor("#E6F2EB")
 WHITE = colors.white
 
 
@@ -252,14 +252,14 @@ def build():
             ],
             [
                 Paragraph(
-                    "Supplier-led uniforms for Kenyan senior schools — "
-                    "catalog, deliveries, co-issue, reports & print",
+                    "Supplier-owned national portal — schools, catalogues, "
+                    "deliveries, co-issue, team & print",
                     s["cover_sub"],
                 )
             ],
             [
                 Paragraph(
-                    "Demo password for all seed accounts: <b>desk1234</b>",
+                    "Demo password: <b>desk1234</b> · Default theme: <b>National</b>",
                     s["cover_sub"],
                 )
             ],
@@ -319,17 +319,12 @@ def build():
                 [
                     "Supplier admin",
                     "supply@uniformdesk.co",
-                    "Full supplier story (create school, branding, catalog)",
+                    "Super user — schools, team, supply docs, branding, monitor",
                 ],
                 [
                     "Supplier staff",
                     "staff@uniformdesk.co",
-                    "Day-to-day ops (no branding)",
-                ],
-                [
-                    "School reporter",
-                    "report@greenfield.school",
-                    "Optional: school receive / stock take",
+                    "Issue desk — co-issue, still owed, basic reports",
                 ],
             ],
             [32 * mm, 55 * mm, w - 87 * mm],
@@ -338,8 +333,8 @@ def build():
     story.append(Spacer(1, 6))
     story.append(
         Paragraph(
-            "Seed school codes: <b>GFS</b> (Greenfield), <b>RVA</b> (Riverside). "
-            "Password for all: <b>desk1234</b>.",
+            "Seed school codes (data sites): <b>GFS</b>, <b>RVA</b>. "
+            "Password: <b>desk1234</b>. School operational login is closed in Phase 1.",
             s["body"],
         )
     )
@@ -347,9 +342,9 @@ def build():
     story.append(Paragraph("One-sentence pitch", s["h2"]))
     story.append(
         Paragraph(
-            "UniformDesk is <b>supplier-led</b>: you own the catalog, link schools, "
-            "deliver stock, co-issue on admission day, invoice, and see issued + campus stock — "
-            "while the school reporter runs stock take and receives delivery notes.",
+            "UniformDesk is <b>supplier-owned</b>: admins run schools, catalogues, "
+            "deliveries, invoices, and team access; staff co-issue on admission day. "
+            "Schools are campus data sites — operational school login is closed in Phase 1.",
             s["body"],
         )
     )
@@ -360,64 +355,64 @@ def build():
             "1. Sign in as supplier admin (2 min)",
             [
                 "Open /login → supply@uniformdesk.co / desk1234",
-                "Land on Supplier home (/supplier)",
-                "Point out: co-issue, schools, reports, deliveries, invoices",
+                "Land on National supply monitor (/supplier)",
+                "Point out: co-issue, schools, team, reports, deliveries, invoices",
+                "Default theme: National (institutional green & gold)",
             ],
-            "This portal is yours. Schools get a simpler desk for issue and stock.",
+            "This portal is yours. Admin monitors everything; staff only get the issue desk.",
         ),
         (
-            "2. Schools portfolio (3 min) — /supplier/schools",
+            "2. Team (2 min) — /supplier/team",
+            [
+                "Show directory (admin + staff)",
+                "Create users, reset passwords, deactivate (keep ≥1 admin)",
+            ],
+            "You manage access here — no school logins for day-to-day ops.",
+        ),
+        (
+            "3. Schools portfolio (3 min) — /supplier/schools",
             [
                 "Show linked schools (GFS / RVA cards)",
-                "Create school (admin only): name + code + reporter login — or link by code",
-                "Open Co-issue from a school card",
+                "Create school (admin): name + code only — or link by code",
+                "Open Catalogue & kits, then Co-issue from a school card",
             ],
-            "Each school is a separate tenant. You only see schools you create or link.",
+            "Each school is a separate campus. Your team operates the desk.",
         ),
         (
-            "3. Catalog (2 min) — /supplier/catalog",
+            "4. Catalogues (3 min)",
             [
-                "Show SKUs, sizes, prices",
-                "Emphasize: SKU must match what the school receives into stock",
+                "School catalogue — items + kits per campus",
+                "Supplier products — master SKUs/prices for DNs & invoices",
+                "SKU must match for DN receive",
             ],
-            "Your catalog drives deliveries and invoices. Matching SKUs keep receive clean.",
+            "Your product list drives supply documents.",
         ),
         (
-            "4. Orders → Delivery note → Invoice (5 min)",
+            "5. Orders → Delivery note → Invoice (5 min) — admin",
             [
                 "Orders (/supplier/orders) — create / open a PO for a linked school",
                 "Deliveries (/supplier/deliveries) — pack / dispatch DN",
-                "DN detail — lines, status → Print DN",
+                "DN detail — lines → Print DN",
                 "Invoices — invoice from delivery → Print invoice",
             ],
-            "Paper packs print from the browser — compact A4 portrait. School receives the DN into stock.",
+            "Paper packs print from the browser — compact A4 portrait.",
         ),
         (
-            "5. Co-issue on campus (5 min) — /supplier/issue",
+            "6. Co-issue on campus (5 min) — /supplier/issue",
             [
                 "Pick linked school (if more than one)",
                 "New student or find roster student",
-                "Load kit / adjust lines",
                 "Payment method + reference (no amount)",
                 "Confirm issue → Still owed for incomplete kits",
+                "Also show staff login: issue paths only",
             ],
-            "Same issue flow as the school desk, against that school’s stock. Slip stays on the school; you are the issuer.",
+            "Admin and staff both co-issue against campus stock.",
         ),
         (
-            "6. Supplier reports (3 min) — /supplier/reports",
+            "7. Reports & branding (2 min)",
             [
-                "Select school if needed",
-                "Issued today — who got what, payment ref, issuer",
-                "Stock on hand — read-only campus balances (school does stock take)",
-                "Print report on the active view",
-            ],
-            "Daily visibility without owning their stock take.",
-        ),
-        (
-            "7. Branding & staff (2 min) — admin only",
-            [
-                "/supplier/branding — name, mark, accent, support contacts",
-                "Staff login staff@uniformdesk.co — same ops, no branding menu",
+                "/supplier/reports — issued today + stock view",
+                "/supplier/branding — admin only",
             ],
             None,
         ),
@@ -454,20 +449,20 @@ def build():
             [
                 ["Question", "Answer"],
                 [
-                    "Do we replace the school system?",
-                    "No — school reporters keep issue, stock take, receive. You own supply + co-issue.",
+                    "Do schools log in every day?",
+                    "Not in Phase 1 — your admin/staff run the desk. School follow-up reports come later.",
+                ],
+                [
+                    "Who is the super user?",
+                    "supplier_admin — create users, reset passwords, deactivate, full monitor.",
+                ],
+                [
+                    "What can staff do?",
+                    "Co-issue, still owed, basic reports — not schools, products, or billing.",
                 ],
                 [
                     "Can we see other suppliers’ schools?",
                     "No. Only schools you create or link.",
-                ],
-                [
-                    "Who owns stock numbers?",
-                    "The school. You view balances; they adjust / stock take.",
-                ],
-                [
-                    "Parent slips?",
-                    "Not required. Method + reference only for audit.",
                 ],
                 [
                     "Printing?",
@@ -480,10 +475,11 @@ def build():
 
     # Part B
     story.append(PageBreak())
-    story.append(Paragraph("Part B — Desk & supplier operations", s["h1"]))
+    story.append(Paragraph("Part B — Supplier operations", s["h1"]))
     story.append(
         Paragraph(
-            "Day-to-day operations for school reporters and supplier staff.",
+            "Day-to-day operations for supplier admin and supplier staff. "
+            "School operational login is closed in Phase 1.",
             s["body"],
         )
     )
@@ -495,18 +491,13 @@ def build():
                 ["Role", "Owns", "Typical work"],
                 [
                     "supplier_admin",
-                    "Server, catalog, school links, branding",
-                    "Catalog, schools, deliveries, invoices, co-issue, reports",
+                    "Full system (super user)",
+                    "Schools, products, kits, deliveries, invoices, team, branding, monitor, co-issue",
                 ],
                 [
                     "supplier_staff",
-                    "Ops under the supplier",
-                    "Pack/dispatch, invoices, co-issue, reports",
-                ],
-                [
-                    "school_reporter",
-                    "Campus stock & admission issue",
-                    "Issue desk, stock take, receive DN, campus reports",
+                    "Issue desk",
+                    "Co-issue, still owed, basic reports / activity / search",
                 ],
             ],
             [35 * mm, 55 * mm, w - 90 * mm],
@@ -515,22 +506,22 @@ def build():
     story.append(Spacer(1, 6))
     story.append(
         Paragraph(
-            "School purchase routes (orders / reorder / school invoices / catalog admin) "
-            "are retired — supply buying stays on the supplier side.",
+            "Default visual theme: <b>National</b> (institutional green &amp; gold). "
+            "Switch anytime from the theme menu.",
             s["body"],
         )
     )
 
-    story.append(Paragraph("School desk", s["h2"]))
-    story.append(Paragraph("Issue (/issue)", s["h3"]))
+    story.append(Paragraph("Co-issue desk", s["h2"]))
+    story.append(Paragraph("Issue (/supplier/issue)", s["h3"]))
     story.append(
         numbered(
             [
-                "Find or key in a student (admission no, name, class).",
+                "Pick a linked school, then find or key in a student.",
                 "Choose kit / lines and quantities.",
                 "Record payment method + reference (no amount).",
                 "Confirm — no parent signature / slip required.",
-                "Stock decreases; shortages open Still to receive.",
+                "Stock decreases; shortages open Still owed.",
             ]
         )
     )

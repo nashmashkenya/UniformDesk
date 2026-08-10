@@ -2,15 +2,19 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { PrintButton } from "@/components/print-button";
 import { ReportPrintBanner } from "@/components/report-print-banner";
+import { SupplierCampusEmptyState } from "@/components/supplier-campus-gate";
 import { SupplierSchoolSelect } from "@/components/supplier-school-select";
-import { requireSupplierUser } from "@/lib/auth";
+import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
+import {
+  listActorCampuses,
+  pickCampus,
+} from "@/modules/identity/supplier-campuses";
 import { listStudentsStillOwed } from "@/modules/issue/outstanding";
 import {
   listSchoolIssuedForSupplier,
   listSchoolStockForSupplier,
   supplierReportStats,
 } from "@/modules/reports/supplier-reports";
-import { listLinkedSchools } from "@/modules/supply/products";
 
 export default async function SupplierReportsPage({
   searchParams,
@@ -21,22 +25,12 @@ export default async function SupplierReportsPage({
   const { schoolId: schoolIdParam, view: viewParam } = await searchParams;
   const view = viewParam === "stock" ? "stock" : "issued";
 
-  const links = await listLinkedSchools(user.supplierId);
-  const selected =
-    links.find((l) => l.schoolId === schoolIdParam)?.school ??
-    links[0]?.school ??
-    null;
+  const campuses = await listActorCampuses(user);
+  const selected = pickCampus(campuses, schoolIdParam);
+  const isAdmin = canSupplierManage(user.role);
 
   if (!selected) {
-    return (
-      <div className="page-stack">
-        <h1 className="page-title">Reports</h1>
-        <p className="page-sub">Link a school to see issued items and stock.</p>
-        <Link href="/supplier/schools" className="btn btn-primary mt-3">
-          Schools
-        </Link>
-      </div>
-    );
+    return <SupplierCampusEmptyState title="Reports" isAdmin={isAdmin} />;
   }
 
   const [stats, issued, balances, stillOwed] = await Promise.all([
@@ -64,24 +58,28 @@ export default async function SupplierReportsPage({
         <div className="page-header-main">
           <h1 className="page-title">Reports</h1>
           <p className="page-sub">
-            Issued uniforms and campus stock for linked schools. Stock is
-            view-only — school reporters do stock takes.
+            Issued uniforms and campus stock
+            {campuses.length === 1
+              ? ` for ${selected.name}.`
+              : " for your campuses."}{" "}
+            Stock is view-only from this portal.
           </p>
         </div>
-        <PrintButton label="Print report" />
+        <div className="flex flex-wrap items-center gap-2">
+          {campuses.length === 1 && (
+            <span className="chip chip-accent">{selected.code}</span>
+          )}
+          <PrintButton label="Print report" />
+        </div>
       </header>
 
-      {links.length > 1 && (
-        <section className="card no-print">
+      {campuses.length > 1 && (
+        <section className="card national-panel no-print">
           <div className="card-body">
             <SupplierSchoolSelect
               basePath="/supplier/reports"
               value={selected.id}
-              schools={links.map((l) => ({
-                id: l.school.id,
-                name: l.school.name,
-                code: l.school.code,
-              }))}
+              schools={campuses}
             />
           </div>
         </section>

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { canSupplierWrite, requireSupplierUser } from "@/lib/auth";
+import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
 import {
   cancelPendingPayment,
   initiateMpesaPayment,
@@ -23,7 +23,7 @@ export async function recordPaymentAction(
   const invoiceId = String(formData.get("invoiceId") ?? "");
   try {
     const user = await requireSupplierUser();
-    if (!canSupplierWrite(user.role)) return { error: "No permission" };
+    if (!canSupplierManage(user.role)) return { error: "No permission" };
 
     const method = String(formData.get("method") ?? "cash") as PaymentMethod;
     if (method !== "cash" && method !== "bank" && method !== "other") {
@@ -64,7 +64,7 @@ export async function initiateMpesaAction(
   const invoiceId = String(formData.get("invoiceId") ?? "");
   try {
     const user = await requireSupplierUser();
-    if (!canSupplierWrite(user.role)) return { error: "No permission" };
+    if (!canSupplierManage(user.role)) return { error: "No permission" };
 
     const result = await initiateMpesaPayment({
       supplierId: user.supplierId,
@@ -93,7 +93,7 @@ export async function initiateMpesaAction(
 
 export async function cancelPaymentAction(formData: FormData) {
   const user = await requireSupplierUser();
-  if (!canSupplierWrite(user.role)) throw new Error("No permission");
+  if (!canSupplierManage(user.role)) throw new Error("No permission");
   const paymentId = String(formData.get("paymentId") ?? "");
   const invoiceId = String(formData.get("invoiceId") ?? "");
   await cancelPendingPayment({

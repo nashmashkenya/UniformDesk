@@ -19,55 +19,65 @@ export function RecordPaymentForm({
   const [state, action, pending] = useActionState(recordPaymentAction, initial);
 
   return (
-    <form action={action} className="form-stack">
+    <form action={action} className="form-stack form-flush">
       <input type="hidden" name="invoiceId" value={invoiceId} />
-      <div className="form-grid cols-2">
-        <div className="field-group">
-          <label className="field-label" htmlFor="pay-method">
-            Method
-          </label>
-          <select
-            id="pay-method"
-            name="method"
-            defaultValue="cash"
-            className="field"
-          >
-            <option value="cash">Cash</option>
-            <option value="bank">Bank transfer</option>
-            <option value="other">Other</option>
-          </select>
+      <div className="form-section">
+        <div className="form-section-head">
+          <h3 className="form-section-title">Manual payment</h3>
+          <p className="form-section-sub">
+            Record cash, bank, or other settlement against this invoice
+          </p>
         </div>
-        <div className="field-group">
-          <label className="field-label" htmlFor="pay-amount">
-            Amount (KES)
-          </label>
-          <input
-            id="pay-amount"
-            name="amount"
-            type="number"
-            min={1}
-            step="1"
-            defaultValue={remainingKes}
-            className="field"
-          />
+        <div className="form-grid cols-2">
+          <div className="field-group">
+            <label className="field-label" htmlFor="pay-method">
+              Method
+            </label>
+            <select
+              id="pay-method"
+              name="method"
+              defaultValue="cash"
+              className="field"
+            >
+              <option value="cash">Cash</option>
+              <option value="bank">Bank transfer</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="pay-amount">
+              Amount (KES)
+            </label>
+            <input
+              id="pay-amount"
+              name="amount"
+              type="number"
+              min={1}
+              step="1"
+              defaultValue={remainingKes}
+              className="field"
+            />
+          </div>
         </div>
-      </div>
-      <div className="field-group">
-        <label className="field-label" htmlFor="pay-reference">
-          Reference
-        </label>
-        <input
-          id="pay-reference"
-          name="reference"
-          placeholder="Receipt / bank ref"
-          className="field"
-        />
-      </div>
-      <div className="field-group">
-        <label className="field-label" htmlFor="pay-note">
-          Note
-        </label>
-        <input id="pay-note" name="note" className="field" />
+        <div className="form-grid cols-2">
+          <div className="field-group">
+            <label className="field-label" htmlFor="pay-reference">
+              Reference
+            </label>
+            <input
+              id="pay-reference"
+              name="reference"
+              placeholder="Receipt / bank ref"
+              className="field"
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="pay-note">
+              Note
+            </label>
+            <input id="pay-note" name="note" className="field" />
+          </div>
+        </div>
       </div>
       {state.error && (
         <p className="field-error" role="alert">
@@ -75,7 +85,7 @@ export function RecordPaymentForm({
         </p>
       )}
       {state.message && <p className="field-ok">{state.message}</p>}
-      <div>
+      <div className="form-actions">
         <button type="submit" disabled={pending} className="btn btn-primary">
           {pending ? "Saving…" : "Record payment"}
         </button>
@@ -88,26 +98,36 @@ export function MpesaPaymentForm({ invoiceId }: { invoiceId: string }) {
   const [state, action, pending] = useActionState(initiateMpesaAction, initial);
 
   return (
-    <form action={action} className="form-stack">
+    <form action={action} className="form-stack form-flush">
       <input type="hidden" name="invoiceId" value={invoiceId} />
-      <div className="field-group">
-        <label className="field-label" htmlFor="mpesa-phone">
-          Payer phone
-        </label>
-        <input
-          id="mpesa-phone"
-          name="phone"
-          required
-          placeholder="07XXXXXXXX"
-          className="field"
-          inputMode="tel"
-        />
-      </div>
-      <div className="field-group">
-        <label className="field-label" htmlFor="mpesa-note">
-          Note
-        </label>
-        <input id="mpesa-note" name="note" className="field" />
+      <div className="form-section">
+        <div className="form-section-head">
+          <h3 className="form-section-title">M-Pesa STK</h3>
+          <p className="form-section-sub">
+            Send a payment prompt to the payer’s phone
+          </p>
+        </div>
+        <div className="form-grid cols-2">
+          <div className="field-group">
+            <label className="field-label" htmlFor="mpesa-phone">
+              Payer phone
+            </label>
+            <input
+              id="mpesa-phone"
+              name="phone"
+              required
+              placeholder="07XXXXXXXX"
+              className="field"
+              inputMode="tel"
+            />
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="mpesa-note">
+              Note
+            </label>
+            <input id="mpesa-note" name="note" className="field" />
+          </div>
+        </div>
       </div>
       {state.error && (
         <p className="field-error" role="alert">
@@ -126,7 +146,7 @@ export function MpesaPaymentForm({ invoiceId }: { invoiceId: string }) {
           </a>
         </p>
       )}
-      <div>
+      <div className="form-actions">
         <button type="submit" disabled={pending} className="btn btn-primary">
           {pending ? "Sending…" : "Send M-Pesa prompt"}
         </button>

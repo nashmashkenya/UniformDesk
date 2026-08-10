@@ -2,7 +2,7 @@
 
 **Supplier-owned** uniforms platform: stock · co-issue at admission · proof & reports.
 
-Schools no longer purchase through the desk — campus **school reporters** co-issue with supplier staff and view issue reports. The supplier runs the server and the supply catalog.
+Phase 1 is **supplier-operated**: `supplier_admin` (super user) and `supplier_staff` (issue desk). Schools are campus data sites — school operational login is closed; follow-up reports come later.
 
 **Docs:** [`docs/DESK_GUIDE.md`](./docs/DESK_GUIDE.md) (day-to-day ops + printing) · [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) (go-live) · [`docs/presentation/`](./docs/presentation/) (system overview PPT)
 
@@ -30,9 +30,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Role | Who | Access |
 |------|-----|--------|
-| `supplier_admin` | Supplier HQ | Catalog, schools, supply, co-issue, branding |
-| `supplier_staff` | Supplier ops | Pack/dispatch, invoices, co-issue |
-| `school_reporter` | School campus | Co-issue, stock, receive DN, reports |
+| `supplier_admin` | Supplier HQ (super user) | Schools, products, kits, supply docs, team, branding, co-issue, monitor |
+| `supplier_staff` | Supplier issue desk | Co-issue, still owed, basic reports |
+
+Default theme: **National** (institutional green & gold).
 
 ### Demo logins
 
@@ -40,8 +41,6 @@ Open [http://localhost:3000](http://localhost:3000).
 |------|-------|----------|
 | Supplier admin | `supply@uniformdesk.co` | `desk1234` |
 | Supplier staff | `staff@uniformdesk.co` | `desk1234` |
-| School reporter (GFS) | `report@greenfield.school` | `desk1234` |
-| School reporter (RVA) | `report@riverside.school` | `desk1234` |
 
 ## Phase 1 routes (school)
 

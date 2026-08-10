@@ -5,32 +5,32 @@ import {
   LinkSchoolForm,
 } from "@/components/branding-form";
 import { StatusPill } from "@/components/status-pill";
-import { requireSupplierUser } from "@/lib/auth";
+import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { listSchoolPortfolio } from "@/modules/supply/portfolio";
 
 export default async function SupplierSchoolsPage() {
-  const user = await requireSupplierUser();
+  const user = await requireSupplierAdmin();
   const portfolio = await listSchoolPortfolio(user.supplierId);
-  const canLink = user.role === "supplier_admin";
+  const canLink = true;
 
   return (
     <div className="page-stack">
       <section>
         <h1 className="page-title">Schools</h1>
         <p className="page-sub">
-          Create senior schools, link them, then co-issue and supply uniforms.
+          Create or link schools, set each school’s catalogue &amp; kits, then
+          co-issue and supply.
         </p>
       </section>
 
       {canLink && (
         <>
-          <section className="card">
+          <section className="card national-panel">
             <div className="card-header">
               <div>
                 <h2 className="card-title text-base">Create a school</h2>
                 <p className="card-subtitle">
-                  New school code, auto-linked to you, with a school reporter
-                  login
+                  New school code, auto-linked — your team operates the desk
                 </p>
               </div>
             </div>
@@ -39,7 +39,7 @@ export default async function SupplierSchoolsPage() {
             </div>
           </section>
 
-          <section className="card">
+          <section className="card national-panel">
             <div className="card-header">
               <div>
                 <h2 className="card-title text-base">Link an existing school</h2>
@@ -102,8 +102,14 @@ export default async function SupplierSchoolsPage() {
 
               <div className="flex flex-wrap gap-2">
                 <Link
-                  href={`/supplier/issue?schoolId=${row.school.id}`}
+                  href={`/supplier/schools/${row.school.id}/catalog`}
                   className="btn btn-primary"
+                >
+                  Catalogue & kits
+                </Link>
+                <Link
+                  href={`/supplier/issue?schoolId=${row.school.id}`}
+                  className="btn btn-secondary"
                 >
                   Co-issue
                 </Link>
