@@ -92,7 +92,7 @@ You do **not** need the full Orders → Deliveries → Invoices loop to run admi
 **Golden path for go-live**
 
 ```text
-Login → Create school → Products → Catalogue + 1 kit
+Login → Create school → Products → Select products onto school + 1 kit
      → Delivery note → Post to campus stock
      → Team (if staff will issue) → Test Issue
 ```
@@ -183,8 +183,9 @@ Follow this order the first time you go live. Skip steps you already finished. B
 ### Step C — School catalogue and kits
 
 1. **Schools** → school → **Catalogue & kits**
-2. **Items** — add school items with the **same SKUs** as Products
-3. **Kits** — create at least one admission kit (e.g. Form 1 Girls)
+2. **Items** — tick products from your master list → **Add … to school**  
+   (SKU, name, and sizes copy automatically — no retyping)
+3. **Kits** — create at least one admission kit; pick lines from those school items
 
 ### Step D — Delivery note + post stock
 
@@ -289,15 +290,16 @@ Each school has its **own** items and kits.
 ### Items
 
 1. Open the **Items** tab
-2. Add SKU, name, category, sizes
-3. **SKU tip:** use the **same SKU** as in **Products** so **Post to campus stock** maps cleanly
-4. Add sizes later or deactivate unused items as needed
+2. Under **Add from products**, tick the products this school uses
+3. Click **Add … to school** — SKU, name, and sizes copy from Products
+4. Products already on the school are hidden from the list
+5. Add extra sizes later on an item, or use **Add a custom item** only if you need a school-only SKU
 
 ### Kits (admission sets)
 
 1. Open the **Kits** tab
 2. Name the kit (e.g. `Form 1 Girls`), set academic year
-3. Add lines: item + default quantity → save
+3. Add lines: **select** a school item (dropdown) + default quantity → save
 
 Kits are what the co-issue desk loads quickly for a new student.
 

@@ -265,7 +265,7 @@ On-page **Print** button; **A4 portrait**.
 |------|------------------|
 | Access to another school | Team → campus access |
 | Password reset | Team |
-| New school / catalogue / kit | Schools → Catalogue & kits |
+| New school / catalogue / kit | Schools → Catalogue & kits (admin selects products) |
 | New SKU or price | Products |
 | Put stock on campus | Deliveries → DN → **Post to campus stock** |
 | Billing / invoice payment | Invoices |

@@ -6,12 +6,17 @@ import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
 import {
   addItemSize,
   createItem,
+  publishProductsToSchool,
   setItemActive,
 } from "@/modules/catalog/items";
 import { createKit, setKitActive } from "@/modules/catalog/kits";
 import { assertSupplierSchoolLink } from "@/modules/supply/orders";
 
-export type SchoolCatalogState = { error?: string; ok?: boolean };
+export type SchoolCatalogState = {
+  error?: string;
+  ok?: boolean;
+  message?: string;
+};
 
 async function requireLinkedSupplierSchool(schoolId: string) {
   const user = await requireSupplierUser();
@@ -30,6 +35,39 @@ function revalidateSchoolCatalog(schoolId: string) {
   revalidatePath("/issue");
   revalidatePath("/receive");
   revalidatePath("/stock");
+}
+
+export async function publishProductsToSchoolAction(
+  _prev: SchoolCatalogState,
+  formData: FormData,
+): Promise<SchoolCatalogState> {
+  const schoolId = String(formData.get("schoolId") ?? "");
+  try {
+    const user = await requireLinkedSupplierSchool(schoolId);
+    if (!user.supplierId) throw new Error("Supplier account required");
+    const productIds = formData
+      .getAll("productIds")
+      .map((v) => String(v))
+      .filter(Boolean);
+    const result = await publishProductsToSchool({
+      supplierId: user.supplierId,
+      schoolId,
+      productIds,
+    });
+    revalidateSchoolCatalog(schoolId);
+    const parts = [`Added ${result.added} product(s) to this school`];
+    if (result.skipped) {
+      parts.push(`${result.skipped} already on catalogue (skipped)`);
+    }
+    return { ok: true, message: parts.join(" · ") };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Could not add products to school",
+    };
+  }
 }
 
 export async function createSchoolItemAction(

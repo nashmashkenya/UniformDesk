@@ -14,6 +14,7 @@ import { requireSupplierAdmin } from "@/lib/supplier-access";
 import { listItems } from "@/modules/catalog/items";
 import { listKits } from "@/modules/catalog/kits";
 import { assertSupplierSchoolLink } from "@/modules/supply/orders";
+import { listSupplierProducts } from "@/modules/supply/products";
 import { prisma } from "@/lib/db";
 
 export default async function SupplierSchoolCatalogPage({
@@ -41,12 +42,25 @@ export default async function SupplierSchoolCatalogPage({
   });
   if (!school) notFound();
 
-  const [items, kits] = await Promise.all([
+  if (!user.supplierId) notFound();
+
+  const [items, kits, products] = await Promise.all([
     listItems(schoolId),
     listKits(schoolId),
+    listSupplierProducts(user.supplierId),
   ]);
 
   const activeItems = items.filter((i) => i.active);
+  const schoolSkus = new Set(items.map((i) => i.sku.toUpperCase()));
+  const publishableProducts = products
+    .filter((p) => p.active && !schoolSkus.has(p.sku.toUpperCase()))
+    .map((p) => ({
+      id: p.id,
+      sku: p.sku,
+      name: p.name,
+      category: p.category,
+      sizes: p.sizes.map((s) => s.sizeLabel),
+    }));
 
   return (
     <div className="page-stack">
@@ -60,9 +74,9 @@ export default async function SupplierSchoolCatalogPage({
             <span className="text-[var(--muted)]">({school.code})</span>
           </h1>
           <p className="page-sub">
-            Define this school’s items, sizes, and admission kits (girls, boys,
-            or mixed). Match SKUs to your supplier catalogue for clean DN
-            receive.
+            Select products from your master list onto this school, then build
+            admission kits. Selecting products keeps SKUs exact for stock post
+            and co-issue.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -105,15 +119,17 @@ export default async function SupplierSchoolCatalogPage({
             <section className="card national-panel">
               <div className="card-header">
                 <div>
-                  <h2 className="card-title">Add school item</h2>
+                  <h2 className="card-title">Add from products</h2>
                   <p className="card-subtitle">
-                    Campus-specific product (e.g. skirt for girls, trouser for
-                    boys)
+                    Tick products to put on this campus — no SKU retyping
                   </p>
                 </div>
               </div>
               <div className="card-body">
-                <SchoolCatalogItemForm schoolId={school.id} />
+                <SchoolCatalogItemForm
+                  schoolId={school.id}
+                  products={publishableProducts}
+                />
               </div>
             </section>
           )}
@@ -121,18 +137,21 @@ export default async function SupplierSchoolCatalogPage({
           <section className="card">
             <div className="card-header">
               <div>
-                <h2 className="card-title">Items on hand at this school</h2>
+                <h2 className="card-title">Items on this school</h2>
                 <p className="card-subtitle">
                   {activeItems.length} active · {items.length - activeItems.length}{" "}
                   inactive
+                  {publishableProducts.length
+                    ? ` · ${publishableProducts.length} product(s) still available to add`
+                    : ""}
                 </p>
               </div>
             </div>
             <div className="card-body space-y-3">
               {!items.length && (
                 <p className="text-sm text-[var(--muted)]">
-                  No items yet. Add catalogue lines for this school’s uniform
-                  specs.
+                  No items yet. Select products above (or add them under
+                  Products first).
                 </p>
               )}
               {items.map((item) => (
@@ -210,7 +229,8 @@ export default async function SupplierSchoolCatalogPage({
                   <SchoolKitForm schoolId={school.id} items={items} />
                 ) : (
                   <p className="text-sm text-[var(--muted)]">
-                    Add active items first, then build kits.
+                    Add products on the Items tab first (select from your
+                    product list), then build kits by choosing those items.
                   </p>
                 )}
               </div>

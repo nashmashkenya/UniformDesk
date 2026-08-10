@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
 import {
   addSchoolItemSizeAction,
   createSchoolItemAction,
   createSchoolKitAction,
+  publishProductsToSchoolAction,
   type SchoolCatalogState,
 } from "@/app/actions/school-catalog";
 
@@ -23,98 +25,252 @@ const categories = [
   "other",
 ] as const;
 
-export function SchoolCatalogItemForm({ schoolId }: { schoolId: string }) {
-  const [state, action, pending] = useActionState(
+export type PublishableProduct = {
+  id: string;
+  sku: string;
+  name: string;
+  category: string;
+  sizes: string[];
+};
+
+export function SchoolCatalogItemForm({
+  schoolId,
+  products,
+}: {
+  schoolId: string;
+  products: PublishableProduct[];
+}) {
+  const [publishState, publishAction, publishPending] = useActionState(
+    publishProductsToSchoolAction,
+    initial,
+  );
+  const [customState, customAction, customPending] = useActionState(
     createSchoolItemAction,
     initial,
   );
-  const formRef = useRef<HTMLFormElement>(null);
+  const publishFormRef = useRef<HTMLFormElement>(null);
+  const customFormRef = useRef<HTMLFormElement>(null);
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
-    if (state.ok) formRef.current?.reset();
-  }, [state]);
+    if (publishState.ok) {
+      publishFormRef.current?.reset();
+      setSelected([]);
+    }
+  }, [publishState]);
+
+  useEffect(() => {
+    if (customState.ok) customFormRef.current?.reset();
+  }, [customState]);
+
+  function toggleProduct(id: string) {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  }
+
+  function selectAll() {
+    setSelected(products.map((p) => p.id));
+  }
 
   return (
-    <form ref={formRef} action={action} className="form-stack form-flush">
-      <input type="hidden" name="schoolId" value={schoolId} />
-      <div className="form-section">
-        <div className="form-section-head">
-          <h3 className="form-section-title">Catalogue item</h3>
-          <p className="form-section-sub">
-            SKU should match your supplier product for DN receive
-          </p>
-        </div>
-        <div className="form-grid cols-2">
-          <div className="field-group">
-            <label className="field-label" htmlFor="school-item-sku">
-              SKU
-            </label>
-            <input
-              id="school-item-sku"
-              name="sku"
-              required
-              placeholder="e.g. SKIRT-NVY or SHIRT-WHT"
-              className="field"
-            />
-            <p className="field-hint">
-              Must match supplier product SKU for DN receive
+    <div className="form-stack form-flush">
+      <form
+        ref={publishFormRef}
+        action={publishAction}
+        className="form-stack form-flush"
+      >
+        <input type="hidden" name="schoolId" value={schoolId} />
+        {selected.map((id) => (
+          <input key={id} type="hidden" name="productIds" value={id} />
+        ))}
+
+        <div className="form-section">
+          <div className="form-section-head">
+            <h3 className="form-section-title">Add from your products</h3>
+            <p className="form-section-sub">
+              Select supplier products — SKU, name, and sizes copy exactly (no
+              retyping)
             </p>
           </div>
-          <div className="field-group">
-            <label className="field-label" htmlFor="school-item-name">
-              Name
-            </label>
-            <input
-              id="school-item-name"
-              name="name"
-              required
-              placeholder="Navy Skirt / White Shirt"
-              className="field"
-            />
-          </div>
-          <div className="field-group">
-            <label className="field-label" htmlFor="school-item-category">
-              Category
-            </label>
-            <select
-              id="school-item-category"
-              name="category"
-              className="field"
-              defaultValue="shirt"
-            >
-              {categories.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field-group">
-            <label className="field-label" htmlFor="school-item-sizes">
-              Sizes
-            </label>
-            <input
-              id="school-item-sizes"
-              name="sizes"
-              required
-              placeholder="S, M, L or 28, 30, 32"
-              className="field"
-            />
-          </div>
+
+          {!products.length ? (
+            <p className="text-sm text-[var(--muted)]">
+              All active products are already on this school, or you have no
+              products yet.{" "}
+              <Link href="/supplier/catalog" className="text-[var(--accent)]">
+                Manage products
+              </Link>
+            </p>
+          ) : (
+            <>
+              <div className="form-actions form-actions-inline mb-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={selectAll}
+                >
+                  Select all ({products.length})
+                </button>
+                {selected.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => setSelected([])}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+              <ul className="space-y-2">
+                {products.map((product) => {
+                  const checked = selected.includes(product.id);
+                  return (
+                    <li key={product.id}>
+                      <label className="field-check">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleProduct(product.id)}
+                        />
+                        <span>
+                          <span className="field-check-title">
+                            {product.name}{" "}
+                            <span className="text-[var(--muted)]">
+                              ({product.sku})
+                            </span>
+                          </span>
+                          <span className="field-check-sub">
+                            {product.category}
+                            {product.sizes.length
+                              ? ` · ${product.sizes.join(", ")}`
+                              : " · no sizes"}
+                          </span>
+                        </span>
+                      </label>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
         </div>
-      </div>
-      {state.error && (
-        <p className="field-error" role="alert">
-          {state.error}
+
+        {publishState.error && (
+          <p className="field-error" role="alert">
+            {publishState.error}
+          </p>
+        )}
+        {publishState.ok && (
+          <p className="field-ok">
+            {publishState.message ?? "Products added to this school."}
+          </p>
+        )}
+
+        <div className="form-actions">
+          <button
+            type="submit"
+            disabled={publishPending || !selected.length}
+            className="btn btn-primary"
+          >
+            {publishPending
+              ? "Adding…"
+              : selected.length
+                ? `Add ${selected.length} to school`
+                : "Select products to add"}
+          </button>
+        </div>
+      </form>
+
+      <details className="mt-4 rounded-[var(--radius)] border border-[var(--line)] p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--ink)]">
+          Add a custom item (rare)
+        </summary>
+        <p className="mt-2 text-xs text-[var(--muted)]">
+          Prefer selecting from Products above. Use this only for a school-only
+          SKU that is not on your master list.
         </p>
-      )}
-      {state.ok && <p className="field-ok">Item added to this school.</p>}
-      <div className="form-actions">
-        <button type="submit" disabled={pending} className="btn btn-primary">
-          {pending ? "Saving…" : "Add item"}
-        </button>
-      </div>
-    </form>
+        <form
+          ref={customFormRef}
+          action={customAction}
+          className="form-stack mt-3"
+        >
+          <input type="hidden" name="schoolId" value={schoolId} />
+          <div className="form-grid cols-2">
+            <div className="field-group">
+              <label className="field-label" htmlFor="school-item-sku">
+                SKU
+              </label>
+              <input
+                id="school-item-sku"
+                name="sku"
+                required
+                placeholder="e.g. SKIRT-NVY"
+                className="field"
+              />
+            </div>
+            <div className="field-group">
+              <label className="field-label" htmlFor="school-item-name">
+                Name
+              </label>
+              <input
+                id="school-item-name"
+                name="name"
+                required
+                placeholder="Navy Skirt"
+                className="field"
+              />
+            </div>
+            <div className="field-group">
+              <label className="field-label" htmlFor="school-item-category">
+                Category
+              </label>
+              <select
+                id="school-item-category"
+                name="category"
+                className="field"
+                defaultValue="other"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field-group">
+              <label className="field-label" htmlFor="school-item-sizes">
+                Sizes
+              </label>
+              <input
+                id="school-item-sizes"
+                name="sizes"
+                required
+                placeholder="S, M, L"
+                className="field"
+              />
+            </div>
+          </div>
+          {customState.error && (
+            <p className="field-error" role="alert">
+              {customState.error}
+            </p>
+          )}
+          {customState.ok && (
+            <p className="field-ok">Custom item added to this school.</p>
+          )}
+          <div className="form-actions">
+            <button
+              type="submit"
+              disabled={customPending}
+              className="btn btn-secondary"
+            >
+              {customPending ? "Saving…" : "Add custom item"}
+            </button>
+          </div>
+        </form>
+      </details>
+    </div>
   );
 }
 
@@ -251,7 +407,7 @@ export function SchoolKitForm({
         <div className="form-section-head">
           <h3 className="form-section-title">Kit lines</h3>
           <p className="form-section-sub">
-            Items and quantities for this school’s admission set
+            Choose from items already on this school (added from Products)
           </p>
         </div>
         <div className="receive-lines">

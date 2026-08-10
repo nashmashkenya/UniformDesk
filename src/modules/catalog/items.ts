@@ -28,6 +28,69 @@ export async function listItems(schoolId: string) {
   });
 }
 
+/** Copy selected supplier products onto a school catalogue (SKU + sizes). */
+export async function publishProductsToSchool(input: {
+  supplierId: string;
+  schoolId: string;
+  productIds: string[];
+}) {
+  const productIds = [...new Set(input.productIds.filter(Boolean))];
+  if (!productIds.length) throw new Error("Select at least one product");
+
+  const products = await prisma.supplierProduct.findMany({
+    where: {
+      supplierId: input.supplierId,
+      id: { in: productIds },
+      active: true,
+    },
+    include: { sizes: { orderBy: { sizeLabel: "asc" } } },
+  });
+  if (!products.length) {
+    throw new Error("No matching active products found");
+  }
+
+  let added = 0;
+  let skipped = 0;
+
+  for (const product of products) {
+    const existing = await prisma.item.findFirst({
+      where: {
+        schoolId: input.schoolId,
+        sku: product.sku,
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      skipped += 1;
+      continue;
+    }
+
+    const sizes = product.sizes.map((s) => s.sizeLabel);
+    if (!sizes.length) {
+      throw new Error(
+        `Product ${product.sku} has no sizes. Add sizes under Products first.`,
+      );
+    }
+
+    await createItem({
+      schoolId: input.schoolId,
+      sku: product.sku,
+      name: product.name,
+      category: product.category,
+      sizes,
+    });
+    added += 1;
+  }
+
+  if (!added && skipped) {
+    throw new Error(
+      "Those products are already on this school’s catalogue",
+    );
+  }
+
+  return { added, skipped };
+}
+
 export async function createItem(input: {
   schoolId: string;
   sku: string;
