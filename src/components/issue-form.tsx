@@ -25,6 +25,14 @@ type Line = {
 
 type StudentMode = "new" | "existing";
 type PayMethod = "cash" | "bank" | "mpesa" | "other";
+type MoneyStatus = "unpaid" | "paid" | "deposit" | "waived";
+
+function moneyChip(status?: string | null) {
+  if (status === "paid") return "Paid";
+  if (status === "deposit") return "Deposit";
+  if (status === "waived") return "Waived";
+  return "Unpaid";
+}
 
 export function IssueForm({
   schoolId,
@@ -33,6 +41,7 @@ export function IssueForm({
   items,
   balances: initialBalances,
   cachedMode = false,
+  initialStudentId,
 }: {
   schoolId: string;
   students: IssueDeskStudent[];
@@ -40,6 +49,8 @@ export function IssueForm({
   items: IssueDeskItem[];
   balances: IssueDeskBalance[];
   cachedMode?: boolean;
+  /** Deep-link from Still owed */
+  initialStudentId?: string;
   /** @deprecated Parent slip not required */
   slipPathPrefix?: string;
 }) {
@@ -51,9 +62,11 @@ export function IssueForm({
   const [error, setError] = useState<string | null>(null);
   const [queuedNote, setQueuedNote] = useState<string | null>(null);
   const [successNote, setSuccessNote] = useState<string | null>(null);
-  const [mode, setMode] = useState<StudentMode>("new");
+  const [mode, setMode] = useState<StudentMode>(
+    initialStudentId ? "existing" : "new",
+  );
   const [query, setQuery] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const [studentId, setStudentId] = useState(initialStudentId ?? "");
   const [students, setStudents] = useState(initialStudents);
   const [admissionNo, setAdmissionNo] = useState("");
   const [fullName, setFullName] = useState("");
@@ -62,10 +75,12 @@ export function IssueForm({
   const [parentPhone, setParentPhone] = useState("");
   const [kitId, setKitId] = useState("");
   const [lines, setLines] = useState<Line[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState<PayMethod>("cash");
+  const [paymentMethod, setPaymentMethod] = useState<PayMethod | "">("cash");
   const [paymentReference, setPaymentReference] = useState("");
   const [paymentAmountKes, setPaymentAmountKes] = useState("");
+  const [moneyStatus, setMoneyStatus] = useState<MoneyStatus>("paid");
   const [balances, setBalances] = useState(initialBalances);
+  const [prefillDone, setPrefillDone] = useState(false);
 
   useEffect(() => {
     setBalances(initialBalances);
@@ -164,6 +179,7 @@ export function IssueForm({
     setPaymentMethod("cash");
     setPaymentReference("");
     setPaymentAmountKes("");
+    setMoneyStatus("paid");
     setQuery("");
     setAdmissionNo("");
     setFullName("");
@@ -173,33 +189,67 @@ export function IssueForm({
     setMode("new");
   }
 
+  const allHold = lines.length > 0 && lines.every((l) => !l.fulfil);
+  const amountEntered = paymentAmountKes.trim() !== "";
+  const needsPaymentMethod = !allHold || amountEntered;
+
   function selectStudent(student: IssueDeskStudent) {
     setStudentId(student.id);
     setError(null);
     setSuccessNote(null);
   }
 
+  function linesFromStill(still: NonNullable<IssueDeskStudent["stillToReceive"]>) {
+    return still.lines.map((owed) => {
+      const item = items.find((i) => i.id === owed.itemId);
+      const preferred =
+        (owed.sizeLabel &&
+        item?.sizes.some((s) => s.sizeLabel === owed.sizeLabel)
+          ? owed.sizeLabel
+          : null) ??
+        item?.sizes.find((s) => stockFor(owed.itemId, s.sizeLabel) > 0)
+          ?.sizeLabel ??
+        item?.sizes[0]?.sizeLabel ??
+        "M";
+      return {
+        itemId: owed.itemId,
+        sizeLabel: preferred,
+        qtyRequested: owed.qtyOwed,
+        fulfil: true,
+      };
+    });
+  }
+
   function fillWhatsLeft() {
     const still = selectedStudent?.stillToReceive;
     if (!still?.lines.length) return;
-    setLines(
-      still.lines.map((owed) => {
-        const item = items.find((i) => i.id === owed.itemId);
-        const preferred =
-          item?.sizes.find((s) => stockFor(owed.itemId, s.sizeLabel) > 0)
-            ?.sizeLabel ??
-          item?.sizes[0]?.sizeLabel ??
-          "M";
-        return {
-          itemId: owed.itemId,
-          sizeLabel: preferred,
-          qtyRequested: owed.qtyOwed,
-          fulfil: true,
-        };
-      }),
+    setLines(linesFromStill(still));
+    const anyPaid = still.lines.some(
+      (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
     );
+    if (anyPaid) setMoneyStatus("paid");
     setError(null);
   }
+
+  useEffect(() => {
+    if (prefillDone || !initialStudentId) return;
+    const student = students.find((s) => s.id === initialStudentId);
+    if (!student) return;
+    setMode("existing");
+    setStudentId(student.id);
+    setQuery(student.admissionNo);
+    const still = student.stillToReceive;
+    if (still?.lines.length) {
+      setLines(linesFromStill(still));
+      const anyPaid = still.lines.some(
+        (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
+      );
+      setMoneyStatus(anyPaid ? "paid" : "unpaid");
+      if (!anyPaid) setPaymentMethod("");
+    }
+    setPrefillDone(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep-link prefill
+  }, [initialStudentId, students, prefillDone]);
 
   async function rememberStudentOffline(student: IssueDeskStudent) {
     try {
@@ -282,15 +332,12 @@ export function IssueForm({
     setQueuedNote(null);
     setSuccessNote(null);
 
-    if (!studentId || !lines.length || !paymentMethod) {
-      setError("Student, items, and payment method are required");
+    if (!studentId || !lines.length) {
+      setError("Student and items are required");
       return;
     }
 
-    const studentLabel = selectedStudent
-      ? `${selectedStudent.fullName} (${selectedStudent.admissionNo})`
-      : "Student";
-
+    const holdOnly = lines.every((l) => !l.fulfil);
     const amountRaw = paymentAmountKes.trim();
     const paymentAmountKesNum =
       amountRaw === "" ? undefined : Number(amountRaw);
@@ -301,14 +348,23 @@ export function IssueForm({
       setError("Payment amount must be a whole number in KES");
       return;
     }
+    if ((!holdOnly || paymentAmountKesNum != null) && !paymentMethod) {
+      setError("Payment method is required when issuing or recording payment");
+      return;
+    }
+
+    const studentLabel = selectedStudent
+      ? `${selectedStudent.fullName} (${selectedStudent.admissionNo})`
+      : "Student";
 
     const payload = {
       studentId,
       schoolId,
       kitId: kitId || undefined,
-      paymentMethod,
+      paymentMethod: paymentMethod || undefined,
       paymentReference: paymentReference.trim() || undefined,
       paymentAmountKes: paymentAmountKesNum,
+      moneyStatus,
       lines,
       studentLabel,
     };
@@ -353,12 +409,16 @@ export function IssueForm({
         throw new Error(data.error || "Could not issue kit");
       }
 
-      const payLabel = `${paymentMethod}${
-        paymentReference.trim() ? ` · ${paymentReference.trim()}` : ""
-      }`;
+      const payLabel = paymentMethod
+        ? `${paymentMethod}${
+            paymentReference.trim() ? ` · ${paymentReference.trim()}` : ""
+          }`
+        : moneyChip(moneyStatus);
       resetForm();
       setSuccessNote(
-        `Issued to ${studentLabel}. No parent slip needed — payment: ${payLabel}.`,
+        `Saved for ${studentLabel}. No parent slip needed — ${
+          paymentMethod ? `payment: ${payLabel}` : `status: ${payLabel}`
+        }.`,
       );
       startTransition(() => router.refresh());
     } catch (err) {
@@ -387,7 +447,12 @@ export function IssueForm({
     }
   }
 
-  const canSubmit = Boolean(studentId && lines.length && paymentMethod && !pending);
+  const canSubmit = Boolean(
+    studentId &&
+      lines.length &&
+      !pending &&
+      (paymentMethod || (allHold && !amountEntered)),
+  );
 
   return (
     <form onSubmit={onSubmit} className="page-stack pb-2">
@@ -628,13 +693,9 @@ export function IssueForm({
                           : line.holdReason === "stock_shortage"
                             ? "Stock short"
                             : null;
-                      const money =
-                        line.moneyStatus === "paid" ||
-                        line.moneyStatus === "deposit"
-                          ? "Paid"
-                          : line.moneyStatus === "waived"
-                            ? "Waived"
-                            : "Unpaid";
+                      const size = line.sizeLabel
+                        ? ` · size ${line.sizeLabel}`
+                        : "";
                       return (
                         <li
                           key={line.itemId}
@@ -642,9 +703,12 @@ export function IssueForm({
                         >
                           <span>
                             {line.qtyOwed}× {line.itemName}
+                            {size}
                           </span>
                           <span className="chip chip-warn">Owed</span>
-                          <span className="chip">{money}</span>
+                          <span className="chip">
+                            {moneyChip(line.moneyStatus)}
+                          </span>
                           {hold && (
                             <span className="chip chip-warn">{hold}</span>
                           )}
@@ -823,26 +887,50 @@ export function IssueForm({
           <div>
             <h2 className="card-title">Payment</h2>
             <p className="card-subtitle">
-              How the parent paid — method, reference, optional amount (KES)
+              {allHold && !amountEntered
+                ? "Hold-only — payment method optional. Set money status for Still owed."
+                : "How the parent paid — method, reference, optional amount (KES)"}
             </p>
           </div>
         </div>
         <div className="step-card-body form-grid cols-2">
           <div className="field-group">
             <label className="field-label" htmlFor="issue-pay-method">
-              Method
+              Method{needsPaymentMethod ? "" : " (optional)"}
             </label>
             <select
               id="issue-pay-method"
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as PayMethod)}
+              onChange={(e) => {
+                const next = e.target.value as PayMethod | "";
+                setPaymentMethod(next);
+                if (next && moneyStatus === "unpaid") setMoneyStatus("paid");
+                if (!next && allHold) setMoneyStatus("unpaid");
+              }}
               className="field"
-              required
+              required={needsPaymentMethod}
             >
+              {!needsPaymentMethod && <option value="">None</option>}
               <option value="cash">Cash</option>
               <option value="mpesa">M-Pesa</option>
               <option value="bank">Bank</option>
               <option value="other">Other</option>
+            </select>
+          </div>
+          <div className="field-group">
+            <label className="field-label" htmlFor="issue-money-status">
+              Money status
+            </label>
+            <select
+              id="issue-money-status"
+              value={moneyStatus}
+              onChange={(e) => setMoneyStatus(e.target.value as MoneyStatus)}
+              className="field"
+            >
+              <option value="unpaid">Unpaid</option>
+              <option value="paid">Paid</option>
+              <option value="deposit">Deposit</option>
+              <option value="waived">Waived</option>
             </select>
           </div>
           <div className="field-group">

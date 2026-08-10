@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       paymentMethod: payload.paymentMethod,
       paymentReference: payload.paymentReference,
       paymentAmountCents,
-      moneyStatus: "paid",
+      moneyStatus: payload.moneyStatus,
     });
 
     revalidatePath("/");

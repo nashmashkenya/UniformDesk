@@ -340,13 +340,14 @@ export default async function SupplierReportsPage({
                     {row.lines.map((line) => (
                       <li key={line.itemId}>
                         {line.qtyOwed}× {line.itemName}
+                        {line.sizeLabel ? ` · size ${line.sizeLabel}` : ""}
                         {line.holdLabel ? ` · ${line.holdLabel}` : ""}
                       </li>
                     ))}
                   </ul>
                   <div className="mt-3 no-print">
                     <Link
-                      href={`/supplier/issue?schoolId=${selected.id}`}
+                      href={`/supplier/issue?schoolId=${selected.id}&studentId=${row.student.id}`}
                       className="btn btn-primary"
                     >
                       Go to Issue

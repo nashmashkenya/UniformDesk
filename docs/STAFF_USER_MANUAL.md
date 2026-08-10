@@ -164,21 +164,21 @@ If a school is missing from the picker, you are not assigned to it — even if y
 3. Find the student **or** enter a new one (optional parent name / phone)
 4. Load a **kit**, or adjust lines, sizes, and quantities
 5. On each line tick **Issue now**, or untick to **Hold** (still owed)
-6. Enter **payment method**, **reference**, and optional **amount (KES)**
+6. Set **money status** (Unpaid / Paid / Deposit / Waived). Enter **payment method** and **reference** when issuing stock or recording payment; hold-only can skip method
 7. Confirm
 
 What happens:
 
 - **Slip** created with **your name** as issuer  
 - Issued lines reduce campus stock  
-- Held lines and shortages go to **Still owed** with a reason  
+- Held lines and shortages go to **Still owed** with size (when known) and money status  
 - **Kit status** shows owed / paid / hold  
 
 ### Tips
 
 - One queue per desk so staff do not overlap students  
 - Stock moves only on **Issue now**  
-- Use **Hold** when paid but collecting later  
+- Use **Hold** with **Paid** when collecting later; unpaid holds stay off the paid-not-collected report  
 - Optional KES amount supports **Reports → Cash-up**  
 
 ### If something blocks you
@@ -207,8 +207,8 @@ Only slips for your assigned campuses open.
 **Path:** **Still owed** (`/supplier/incomplete`)
 
 1. Select school if needed  
-2. Review the queue  
-3. **Issue what’s left** → back to Issue for that student  
+2. Review the queue (size and Paid / Unpaid / Deposit chips when known)  
+3. **Issue what’s left** → opens Issue with that student and owed lines loaded  
 4. **Print list** for paper follow-up  
 
 Use after a busy morning, when a size runs out, or at end of day.

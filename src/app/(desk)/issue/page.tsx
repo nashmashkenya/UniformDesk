@@ -3,10 +3,15 @@ import { IssueDeskShell } from "@/components/issue-desk-shell";
 import { canWrite, requireSchoolUser } from "@/lib/auth";
 import { loadIssueDeskData } from "@/modules/issue/issue-desk";
 
-export default async function IssuePage() {
+export default async function IssuePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ studentId?: string }>;
+}) {
   const user = await requireSchoolUser();
   if (!canWrite(user.role)) redirect("/");
 
+  const { studentId } = await searchParams;
   const desk = await loadIssueDeskData(user.schoolId);
 
   return (
@@ -27,6 +32,7 @@ export default async function IssuePage() {
         kits={desk.kits}
         items={desk.items}
         balances={desk.balances}
+        initialStudentId={studentId}
       />
     </div>
   );

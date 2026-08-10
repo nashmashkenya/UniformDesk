@@ -25,10 +25,13 @@ export async function issueKitAction(
   let payload;
   try {
     const kitRaw = String(formData.get("kitId") ?? "").trim();
+    const methodRaw = String(formData.get("paymentMethod") ?? "").trim();
+    const moneyRaw = String(formData.get("moneyStatus") ?? "").trim();
     payload = parseIssuePayload({
       studentId: String(formData.get("studentId") ?? ""),
-      paymentMethod: String(formData.get("paymentMethod") ?? "cash"),
+      paymentMethod: methodRaw || undefined,
       paymentReference: String(formData.get("paymentReference") ?? "") || undefined,
+      moneyStatus: moneyRaw || undefined,
       kitId: kitRaw || undefined,
       lines: z
         .array(issueLineSchema)
@@ -47,6 +50,7 @@ export async function issueKitAction(
       kitId: payload.kitId,
       paymentMethod: payload.paymentMethod,
       paymentReference: payload.paymentReference,
+      moneyStatus: payload.moneyStatus,
     });
   } catch (error) {
     return {

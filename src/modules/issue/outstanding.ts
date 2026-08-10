@@ -4,6 +4,7 @@ export type StillToReceiveLine = {
   itemId: string;
   itemName: string;
   qtyOwed: number;
+  sizeLabel: string | null;
   moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
   holdReason: string | null;
 };
@@ -22,6 +23,25 @@ function owed(needed: number, received: number) {
   return Math.max(0, needed - received);
 }
 
+function mapOwedLine(l: {
+  itemId: string;
+  item: { id: string; name: string };
+  qtyNeeded: number;
+  qtyReceived: number;
+  sizeLabel: string | null;
+  moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
+  holdReason: string | null;
+}): StillToReceiveLine {
+  return {
+    itemId: l.itemId,
+    itemName: l.item.name,
+    qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
+    sizeLabel: l.sizeLabel,
+    moneyStatus: l.moneyStatus,
+    holdReason: l.holdReason,
+  };
+}
+
 export async function getStudentStillToReceive(
   schoolId: string,
   studentId: string,
@@ -38,13 +58,7 @@ export async function getStudentStillToReceive(
   if (!plan) return null;
 
   const lines = plan.lines
-    .map((l) => ({
-      itemId: l.itemId,
-      itemName: l.item.name,
-      qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
-      moneyStatus: l.moneyStatus,
-      holdReason: l.holdReason,
-    }))
+    .map(mapOwedLine)
     .filter((l) => l.qtyOwed > 0);
 
   if (!lines.length) return null;
@@ -87,13 +101,7 @@ export async function listStudentsStillOwed(
   return plans
     .map((plan) => {
       const lines = plan.lines
-        .map((l) => ({
-          itemId: l.itemId,
-          itemName: l.item.name,
-          qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
-          moneyStatus: l.moneyStatus,
-          holdReason: l.holdReason,
-        }))
+        .map(mapOwedLine)
         .filter((l) => l.qtyOwed > 0);
       const totalOwed = lines.reduce((s, l) => s + l.qtyOwed, 0);
       return {
@@ -118,13 +126,14 @@ export async function applyIssueToUniformPlan(
     moneyStatus?: "unpaid" | "paid" | "deposit" | "waived";
     lines: {
       itemId: string;
+      sizeLabel?: string | null;
       qtyRequested: number;
       qtyIssued: number;
       holdReason?: "stock_shortage" | "held_by_desk" | null;
     }[];
   },
 ) {
-  const moneyStatus = input.moneyStatus ?? "paid";
+  const moneyStatus = input.moneyStatus ?? "unpaid";
   const now = new Date();
   let plan = await tx.studentUniformPlan.findFirst({
     where: {
@@ -209,6 +218,8 @@ export async function applyIssueToUniformPlan(
     const stillOwed = nextNeeded - nextReceived;
     const holdReason =
       stillOwed > 0 ? (line.holdReason ?? existing?.holdReason ?? null) : null;
+    const sizeLabel =
+      line.sizeLabel?.trim() || existing?.sizeLabel || null;
 
     if (existing) {
       await tx.studentUniformPlanLine.update({
@@ -216,6 +227,7 @@ export async function applyIssueToUniformPlan(
         data: {
           qtyNeeded: nextNeeded,
           qtyReceived: nextReceived,
+          sizeLabel,
           moneyStatus,
           holdReason,
           heldAt: holdReason ? existing.heldAt ?? now : null,
@@ -223,6 +235,7 @@ export async function applyIssueToUniformPlan(
       });
       existing.qtyNeeded = nextNeeded;
       existing.qtyReceived = nextReceived;
+      existing.sizeLabel = sizeLabel;
       existing.moneyStatus = moneyStatus;
       existing.holdReason = holdReason;
     } else {
@@ -232,6 +245,7 @@ export async function applyIssueToUniformPlan(
           itemId: line.itemId,
           qtyNeeded: nextNeeded,
           qtyReceived: line.qtyIssued,
+          sizeLabel,
           moneyStatus,
           holdReason,
           heldAt: holdReason ? now : null,
@@ -351,13 +365,7 @@ export async function loadStillToReceiveByStudent(
   const map = new Map<string, StudentStillToReceive>();
   for (const plan of plans) {
     const lines = plan.lines
-      .map((l) => ({
-        itemId: l.itemId,
-        itemName: l.item.name,
-        qtyOwed: owed(l.qtyNeeded, l.qtyReceived),
-        moneyStatus: l.moneyStatus,
-        holdReason: l.holdReason,
-      }))
+      .map(mapOwedLine)
       .filter((l) => l.qtyOwed > 0);
     if (!lines.length) continue;
     map.set(plan.studentId, {
@@ -375,4 +383,11 @@ export function holdReasonLabel(reason: string | null | undefined) {
   if (reason === "held_by_desk") return "Held at desk";
   if (reason === "stock_shortage") return "Stock short";
   return null;
+}
+
+export function moneyStatusLabel(status: string | null | undefined) {
+  if (status === "paid") return "Paid";
+  if (status === "deposit") return "Deposit";
+  if (status === "waived") return "Waived";
+  return "Unpaid";
 }

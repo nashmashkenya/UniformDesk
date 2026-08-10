@@ -15,7 +15,7 @@ import { loadIssueDeskData } from "@/modules/issue/issue-desk";
 export default async function SupplierIssuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ schoolId?: string }>;
+  searchParams: Promise<{ schoolId?: string; studentId?: string }>;
 }) {
   const user = await requireSupplierUser();
   if (!canSupplierIssue(user.role)) {
@@ -27,7 +27,7 @@ export default async function SupplierIssuePage({
     );
   }
 
-  const { schoolId: schoolIdParam } = await searchParams;
+  const { schoolId: schoolIdParam, studentId } = await searchParams;
   const campuses = await listActorCampuses(user);
   const selected = pickCampus(campuses, schoolIdParam);
   const isAdmin = canSupplierManage(user.role);
@@ -89,6 +89,7 @@ export default async function SupplierIssuePage({
         balances={desk.balances}
         slipPathPrefix="/supplier/slips"
         coIssue
+        initialStudentId={studentId}
       />
     </div>
   );

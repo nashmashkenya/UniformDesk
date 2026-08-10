@@ -40,13 +40,14 @@ export async function issueKit(input: {
   actorUserId: string;
   studentId: string;
   lines: IssueLineInput[];
-  paymentMethod: PaymentMethod;
+  /** Required when any line is issued or a payment amount is recorded */
+  paymentMethod?: PaymentMethod | null;
   paymentReference?: string | null;
   /** Optional desk payment amount in cents */
   paymentAmountCents?: number | null;
   /** When set, opens/extends the student’s “still to receive” kit plan */
   kitId?: string | null;
-  /** Mark plan lines covered by this payment */
+  /** Mark plan lines covered by this issue; defaults from payment presence */
   moneyStatus?: PlanMoneyStatus;
   /** @deprecated Parent slip/signature not required */
   acknowledgmentName?: string;
@@ -54,9 +55,6 @@ export async function issueKit(input: {
 }) {
   if (!input.lines.length) {
     throw new Error("Add at least one item to issue");
-  }
-  if (!input.paymentMethod) {
-    throw new Error("Payment method is required");
   }
   if (
     input.paymentAmountCents != null &&
@@ -126,10 +124,17 @@ export async function issueKit(input: {
       throw new Error("Nothing to issue or hold");
     }
 
+    const hasPaymentAmount =
+      input.paymentAmountCents != null && input.paymentAmountCents > 0;
+    const paymentMethod = input.paymentMethod ?? null;
+    if ((anyIssued || hasPaymentAmount) && !paymentMethod) {
+      throw new Error("Payment method is required when issuing or recording payment");
+    }
+
     const slipNo = await nextSlipNo(input.schoolId, tx);
     const now = new Date();
     const moneyStatus: PlanMoneyStatus =
-      input.moneyStatus ?? "paid";
+      input.moneyStatus ?? (paymentMethod ? "paid" : "unpaid");
 
     const slip = await tx.issueSlip.create({
       data: {
@@ -146,7 +151,7 @@ export async function issueKit(input: {
             ? input.acknowledgmentSignature
             : DESK_ACK_MARK,
         acknowledgedAt: now,
-        paymentMethod: input.paymentMethod,
+        paymentMethod,
         paymentReference: input.paymentReference?.trim() || null,
         paymentAmountCents:
           input.paymentAmountCents != null
@@ -225,6 +230,7 @@ export async function issueKit(input: {
       moneyStatus,
       lines: prepared.map((line) => ({
         itemId: line.itemId,
+        sizeLabel: line.sizeLabel,
         qtyRequested: line.qtyRequested,
         qtyIssued: line.qtyIssued,
         holdReason: line.holdReason,

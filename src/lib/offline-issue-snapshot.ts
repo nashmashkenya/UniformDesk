@@ -8,6 +8,7 @@ export type IssueDeskStillLine = {
   itemId: string;
   itemName: string;
   qtyOwed: number;
+  sizeLabel?: string | null;
   moneyStatus?: "unpaid" | "paid" | "deposit" | "waived";
   holdReason?: string | null;
 };

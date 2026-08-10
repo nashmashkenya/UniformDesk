@@ -4,6 +4,7 @@ import { issueKit } from "@/modules/issue/issue";
 import {
   getStudentStillToReceive,
   holdReasonLabel,
+  listStudentsStillOwed,
 } from "@/modules/issue/outstanding";
 import {
   listDeskCashUp,
@@ -79,6 +80,60 @@ describe("Phase A — issue now vs hold + kit status", () => {
     expect(still?.totalOwed).toBe(2);
     expect(still?.lines[0]?.holdReason).toBe("held_by_desk");
     expect(still?.lines[0]?.moneyStatus).toBe("paid");
+    expect(still?.lines[0]?.sizeLabel).toBe("M");
+  });
+
+  it("allows hold-only without payment method (unpaid)", async () => {
+    const chain = await seedSupplyChain();
+
+    const slip = await issueKit({
+      schoolId: chain.school.id,
+      actorUserId: chain.supplierUser.id,
+      studentId: chain.student.id,
+      lines: [
+        {
+          itemId: chain.item.id,
+          sizeLabel: "M",
+          qtyRequested: 1,
+          fulfil: false,
+        },
+      ],
+    });
+
+    expect(slip.paymentMethod).toBeNull();
+    expect(slip.lines[0]?.heldByDesk).toBe(true);
+
+    const still = await getStudentStillToReceive(
+      chain.school.id,
+      chain.student.id,
+    );
+    expect(still?.lines[0]?.moneyStatus).toBe("unpaid");
+    expect(still?.lines[0]?.sizeLabel).toBe("M");
+
+    const paidRows = await listPaidNotCollected(chain.school.id);
+    expect(paidRows.some((r) => r.student.id === chain.student.id)).toBe(false);
+
+    const stillList = await listStudentsStillOwed(chain.school.id);
+    expect(stillList.some((r) => r.student.id === chain.student.id)).toBe(true);
+  });
+
+  it("rejects issue-now without payment method", async () => {
+    const chain = await seedSupplyChain();
+    await expect(
+      issueKit({
+        schoolId: chain.school.id,
+        actorUserId: chain.supplierUser.id,
+        studentId: chain.student.id,
+        lines: [
+          {
+            itemId: chain.item.id,
+            sizeLabel: "M",
+            qtyRequested: 1,
+            fulfil: true,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/Payment method is required/);
   });
 
   it("issues some lines and holds others in one desk visit", async () => {
@@ -170,6 +225,7 @@ describe("Phase A — issue now vs hold + kit status", () => {
       chain.student.id,
     );
     expect(still?.lines[0]?.holdReason).toBe("stock_shortage");
+    expect(still?.lines[0]?.sizeLabel).toBe("M");
     expect(holdReasonLabel(still?.lines[0]?.holdReason)).toBe("Stock short");
     expect(holdReasonLabel("held_by_desk")).toBe("Held at desk");
   });
@@ -184,6 +240,7 @@ describe("Phase B — paid not collected + aging", () => {
       studentId: chain.student.id,
       paymentMethod: "bank",
       paymentReference: "REF-9",
+      moneyStatus: "paid",
       lines: [
         {
           itemId: chain.item.id,
@@ -200,6 +257,28 @@ describe("Phase B — paid not collected + aging", () => {
     expect(row?.totalOwed).toBe(3);
     expect(row?.ageDays).toBeGreaterThanOrEqual(0);
     expect(row?.lines[0]?.moneyStatus).toBe("paid");
+    expect(row?.lines[0]?.sizeLabel).toBe("M");
+  });
+
+  it("does not treat unpaid still-owed as paid-not-collected", async () => {
+    const chain = await seedSupplyChain();
+    await issueKit({
+      schoolId: chain.school.id,
+      actorUserId: chain.supplierUser.id,
+      studentId: chain.student.id,
+      moneyStatus: "unpaid",
+      lines: [
+        {
+          itemId: chain.item.id,
+          sizeLabel: "M",
+          qtyRequested: 2,
+          fulfil: false,
+        },
+      ],
+    });
+
+    const paid = await listPaidNotCollected(chain.school.id);
+    expect(paid.some((r) => r.student.id === chain.student.id)).toBe(false);
   });
 });
 
@@ -230,7 +309,7 @@ describe("Phase C — optional payment amount + cash-up", () => {
 });
 
 describe("Phase D — parent receipt summary", () => {
-  it("builds received vs pending text including parent", async () => {
+  it("builds received vs pending text including parent and size", async () => {
     const chain = await seedSupplyChain();
     await prisma.student.update({
       where: { id: chain.student.id },
@@ -296,6 +375,7 @@ describe("Phase D — parent receipt summary", () => {
     expect(receipt.text).toMatch(/Sam Parent/);
     expect(receipt.text).toMatch(/Received today/);
     expect(receipt.text).toMatch(/Still pending/);
+    expect(receipt.text).toMatch(/\(M\)/);
     expect(receipt.pendingCount).toBeGreaterThan(0);
   });
 });

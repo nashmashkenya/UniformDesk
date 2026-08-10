@@ -27,6 +27,7 @@ type OpenPlanLike = {
   lines: {
     qtyNeeded: number;
     qtyReceived: number;
+    sizeLabel?: string | null;
     item: { name: string };
   }[];
 } | null;
@@ -53,10 +54,10 @@ export function buildParentReceiptSummary(input: {
   const pendingFromPlan =
     input.openPlan?.lines
       .filter((l) => l.qtyReceived < l.qtyNeeded)
-      .map(
-        (l) =>
-          `${l.qtyNeeded - l.qtyReceived}× ${l.item.name}`,
-      ) ?? [];
+      .map((l) => {
+        const size = l.sizeLabel ? ` (${l.sizeLabel})` : "";
+        return `${l.qtyNeeded - l.qtyReceived}× ${l.item.name}${size}`;
+      }) ?? [];
 
   const pending =
     pendingFromPlan.length > 0 ? pendingFromPlan : pendingFromSlip;

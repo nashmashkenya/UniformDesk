@@ -56,6 +56,7 @@ export async function listPaidNotCollected(
           itemId: l.itemId,
           itemName: l.item.name,
           sku: l.item.sku,
+          sizeLabel: l.sizeLabel,
           qtyOwed: l.qtyNeeded - l.qtyReceived,
           moneyStatus: l.moneyStatus,
           holdReason: l.holdReason,

@@ -66,6 +66,7 @@ describe("still to receive (incomplete uniforms)", () => {
         itemId: sweater.id,
         itemName: "Navy Sweater",
         qtyOwed: 1,
+        sizeLabel: "M",
       }),
     ]);
 

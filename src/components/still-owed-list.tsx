@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { holdReasonLabel } from "@/modules/issue/outstanding";
+import {
+  holdReasonLabel,
+  moneyStatusLabel,
+} from "@/modules/issue/outstanding";
 
 export type StillOwedRow = {
   planId: string;
@@ -10,6 +13,7 @@ export type StillOwedRow = {
     itemId: string;
     itemName: string;
     qtyOwed: number;
+    sizeLabel?: string | null;
     moneyStatus?: string;
     holdReason?: string | null;
   }[];
@@ -36,7 +40,7 @@ export function StillOwedList({
   emptyHint,
 }: {
   rows: StillOwedRow[];
-  /** Build issue URL for a student, e.g. (id) => `/issue` or supplier link */
+  /** Build issue URL for a student, e.g. (id) => `/issue?studentId=…` */
   issueHref: (studentId: string) => string;
   emptyHint?: string;
 }) {
@@ -80,12 +84,8 @@ export function StillOwedList({
             <ul className="mt-2 space-y-1 text-sm">
               {row.lines.map((line) => {
                 const hold = holdReasonLabel(line.holdReason);
-                const money =
-                  line.moneyStatus === "paid" || line.moneyStatus === "deposit"
-                    ? "Paid"
-                    : line.moneyStatus === "waived"
-                      ? "Waived"
-                      : "Unpaid";
+                const money = moneyStatusLabel(line.moneyStatus);
+                const size = line.sizeLabel ? ` · size ${line.sizeLabel}` : "";
                 return (
                   <li
                     key={line.itemId}
@@ -93,6 +93,7 @@ export function StillOwedList({
                   >
                     <span>
                       {line.qtyOwed}× {line.itemName}
+                      {size}
                     </span>
                     <span className="chip">{money}</span>
                     {hold && <span className="chip chip-warn">{hold}</span>}

@@ -235,6 +235,8 @@ model StudentUniformPlanLine {
   itemId      String
   qtyNeeded   Int
   qtyReceived Int             @default(0)
+  /// Preferred / last held or issued size for this plan line
+  sizeLabel   String?
   moneyStatus PlanMoneyStatus @default(unpaid)
   /// stock_shortage | held_by_desk — set while qty still owed
   holdReason  String?

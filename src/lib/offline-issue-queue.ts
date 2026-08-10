@@ -4,9 +4,10 @@ export type QueuedIssuePayload = {
   studentId: string;
   schoolId?: string;
   kitId?: string;
-  paymentMethod: "cash" | "bank" | "mpesa" | "other";
+  paymentMethod?: "cash" | "bank" | "mpesa" | "other";
   paymentReference?: string;
   paymentAmountKes?: number;
+  moneyStatus?: "unpaid" | "paid" | "deposit" | "waived";
   lines: {
     itemId: string;
     sizeLabel: string;

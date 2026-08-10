@@ -20,6 +20,7 @@ export function IssueDeskShell({
   balances,
   slipPathPrefix = "/slips",
   coIssue = false,
+  initialStudentId,
 }: {
   schoolId: string;
   schoolName: string;
@@ -29,6 +30,8 @@ export function IssueDeskShell({
   balances: IssueDeskBalance[];
   slipPathPrefix?: string;
   coIssue?: boolean;
+  /** Deep-link from Still owed — preselect student and load owed lines */
+  initialStudentId?: string;
 }) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -66,6 +69,7 @@ export function IssueDeskShell({
         items={items}
         balances={balances}
         slipPathPrefix={slipPathPrefix}
+        initialStudentId={initialStudentId}
       />
     </>
   );
