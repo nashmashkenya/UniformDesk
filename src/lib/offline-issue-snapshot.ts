@@ -13,6 +13,26 @@ export type IssueDeskStillLine = {
   holdReason?: string | null;
 };
 
+export type IssueDeskUniformLine = {
+  itemId: string;
+  itemName: string;
+  sku: string;
+  qtyNeeded: number;
+  qtyReceived: number;
+  qtyLeft: number;
+  sizeLabel: string | null;
+  unitPriceCents: number;
+  moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
+  holdReason: string | null;
+};
+
+export type IssueDeskUniformSet = {
+  planId: string;
+  kitId: string | null;
+  label: string;
+  lines: IssueDeskUniformLine[];
+};
+
 export type IssueDeskStudent = {
   id: string;
   admissionNo: string;
@@ -26,6 +46,8 @@ export type IssueDeskStudent = {
     totalOwed: number;
     lines: IssueDeskStillLine[];
   } | null;
+  /** Full kit for this student — given and not given */
+  uniformSet?: IssueDeskUniformSet | null;
 };
 
 export type IssueDeskItem = {
@@ -33,6 +55,7 @@ export type IssueDeskItem = {
   name: string;
   sku: string;
   sizes: { sizeLabel: string }[];
+  unitPriceCents: number;
 };
 
 export type IssueDeskKit = {

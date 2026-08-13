@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { addStudentAction } from "@/app/actions/students";
+import { StudentUniformCard } from "@/components/student-uniform-card";
 import { enqueueIssue } from "@/lib/offline-issue-queue";
 import {
   applyIssueToBalances,
@@ -14,6 +15,12 @@ import {
   type IssueDeskKit,
   type IssueDeskStudent,
 } from "@/lib/offline-issue-snapshot";
+import {
+  buildStandardUniformRows,
+  kesFromCents,
+  leftoverAlreadyPaidOnSet,
+  selectedGiveNowCents,
+} from "@/modules/issue/uniform-set";
 
 type Line = {
   itemId: string;
@@ -137,25 +144,84 @@ export function IssueForm({
     );
   }
 
+  function preferredSize(itemId: string, wanted?: string | null) {
+    const item = items.find((i) => i.id === itemId);
+    return (
+      (wanted && item?.sizes.some((s) => s.sizeLabel === wanted)
+        ? wanted
+        : null) ??
+      item?.sizes.find((s) => stockFor(itemId, s.sizeLabel) > 0)?.sizeLabel ??
+      item?.sizes[0]?.sizeLabel ??
+      "M"
+    );
+  }
+
+  function linesFromKit(kit: IssueDeskKit): Line[] {
+    return kit.lines.map((line) => {
+      const sizeLabel = preferredSize(line.itemId);
+      return {
+        itemId: line.itemId,
+        sizeLabel,
+        qtyRequested: line.qtyDefault,
+        fulfil: true,
+      };
+    });
+  }
+
+  function linesFromUniformSet(
+    set: NonNullable<IssueDeskStudent["uniformSet"]>,
+  ): Line[] {
+    return set.lines
+      .filter((l) => l.qtyLeft > 0)
+      .map((owed) => {
+        const sizeLabel = preferredSize(owed.itemId, owed.sizeLabel);
+        return {
+          itemId: owed.itemId,
+          sizeLabel,
+          qtyRequested: owed.qtyLeft,
+          fulfil: stockFor(owed.itemId, sizeLabel) >= owed.qtyLeft,
+        };
+      });
+  }
+
+  function applyUniformForStudent(student: IssueDeskStudent) {
+    const set = student.uniformSet;
+    if (set?.lines.length) {
+      if (set.kitId) setKitId(set.kitId);
+      setLines(linesFromUniformSet(set));
+      const leftover = set.lines.filter((l) => l.qtyLeft > 0);
+      const anyPaid = leftover.some(
+        (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
+      );
+      if (anyPaid) {
+        setMoneyStatus("paid");
+        setPaymentMethod("cash");
+      } else if (leftover.length) {
+        setMoneyStatus("unpaid");
+      }
+      return;
+    }
+    if (student.stillToReceive?.lines.length) {
+      setLines(linesFromStill(student.stillToReceive));
+      const anyPaid = student.stillToReceive.lines.some(
+        (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
+      );
+      if (anyPaid) {
+        setMoneyStatus("paid");
+        setPaymentMethod("cash");
+      }
+    }
+  }
+
   function applyKit(id: string) {
     setKitId(id);
+    if (selectedStudent?.uniformSet?.lines.length) {
+      setLines(linesFromUniformSet(selectedStudent.uniformSet));
+      return;
+    }
     const kit = kits.find((k) => k.id === id);
     if (!kit) return;
-    setLines(
-      kit.lines.map((line) => {
-        const preferred =
-          line.item.sizes.find((s) => stockFor(line.itemId, s.sizeLabel) > 0)
-            ?.sizeLabel ??
-          line.item.sizes[0]?.sizeLabel ??
-          "M";
-        return {
-          itemId: line.itemId,
-          sizeLabel: preferred,
-          qtyRequested: line.qtyDefault,
-          fulfil: true,
-        };
-      }),
-    );
+    setLines(linesFromKit(kit));
   }
 
   function updateLine(index: number, patch: Partial<Line>) {
@@ -208,40 +274,24 @@ export function IssueForm({
     setStudentId(student.id);
     setError(null);
     setSuccessNote(null);
+    applyUniformForStudent(student);
   }
 
   function linesFromStill(still: NonNullable<IssueDeskStudent["stillToReceive"]>) {
     return still.lines.map((owed) => {
-      const item = items.find((i) => i.id === owed.itemId);
-      const preferred =
-        (owed.sizeLabel &&
-        item?.sizes.some((s) => s.sizeLabel === owed.sizeLabel)
-          ? owed.sizeLabel
-          : null) ??
-        item?.sizes.find((s) => stockFor(owed.itemId, s.sizeLabel) > 0)
-          ?.sizeLabel ??
-        item?.sizes[0]?.sizeLabel ??
-        "M";
+      const sizeLabel = preferredSize(owed.itemId, owed.sizeLabel);
       return {
         itemId: owed.itemId,
-        sizeLabel: preferred,
+        sizeLabel,
         qtyRequested: owed.qtyOwed,
-        fulfil: stockFor(owed.itemId, preferred) >= owed.qtyOwed,
+        fulfil: stockFor(owed.itemId, sizeLabel) >= owed.qtyOwed,
       };
     });
   }
 
   function fillWhatsLeft() {
-    const still = selectedStudent?.stillToReceive;
-    if (!still?.lines.length) return;
-    setLines(linesFromStill(still));
-    const anyPaid = still.lines.some(
-      (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
-    );
-    if (anyPaid) {
-      setMoneyStatus("paid");
-      setPaymentMethod("cash");
-    }
+    if (!selectedStudent) return;
+    applyUniformForStudent(selectedStudent);
     setError(null);
   }
 
@@ -252,15 +302,7 @@ export function IssueForm({
     setMode("existing");
     setStudentId(student.id);
     setQuery(student.admissionNo);
-    const still = student.stillToReceive;
-    if (still?.lines.length) {
-      setLines(linesFromStill(still));
-      const anyPaid = still.lines.some(
-        (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
-      );
-      setMoneyStatus(anyPaid ? "paid" : "unpaid");
-      setPaymentMethod(anyPaid ? "cash" : "");
-    }
+    applyUniformForStudent(student);
     setPrefillDone(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep-link prefill
   }, [initialStudentId, students, prefillDone]);
@@ -477,11 +519,67 @@ export function IssueForm({
     if (needsPaymentMethod && !paymentMethod) setPaymentMethod("cash");
   }, [needsPaymentMethod, paymentMethod]);
 
+  const selectedKit = kits.find((k) => k.id === kitId);
+  const cardRows = useMemo(
+    () =>
+      buildStandardUniformRows({
+        uniformSet: selectedStudent?.uniformSet,
+        kit: selectedKit,
+        items,
+        lines,
+        stockFor,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stockFor is stable enough per render
+    [selectedStudent?.uniformSet, selectedKit, items, lines, balances],
+  );
+  const cardItemIds = useMemo(
+    () => new Set(cardRows.map((r) => r.itemId)),
+    [cardRows],
+  );
+  const extraLineIndexes = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => !cardItemIds.has(line.itemId));
+  const selectedCents = selectedGiveNowCents(lines, items);
+  const planAlreadyPaid =
+    leftoverAlreadyPaidOnSet(selectedStudent?.uniformSet?.lines) ||
+    leftoverAlreadyPaidOnSet(
+      selectedStudent?.stillToReceive?.lines.map((l) => ({
+        qtyLeft: l.qtyOwed,
+        moneyStatus: l.moneyStatus,
+      })),
+    );
+
+  useEffect(() => {
+    if (planAlreadyPaid) return;
+    const kes = kesFromCents(selectedCents);
+    setPaymentAmountKes(kes > 0 ? String(kes) : "");
+  }, [selectedCents, planAlreadyPaid]);
+
+  function onToggleGive(itemId: string, give: boolean) {
+    setLines((prev) =>
+      prev.map((line) =>
+        line.itemId === itemId ? { ...line, fulfil: give } : line,
+      ),
+    );
+  }
+
+  function onCardSizeChange(itemId: string, sizeLabel: string) {
+    setLines((prev) =>
+      prev.map((line) =>
+        line.itemId === itemId ? { ...line, sizeLabel } : line,
+      ),
+    );
+  }
+
   const canSubmit = Boolean(studentId && lines.length && !pending);
   const submitHint = !studentId
-    ? "Student is missing — go back to the list."
+    ? finishMode
+      ? "Student is missing — go back to the list."
+      : "Save or find a student first."
     : !lines.length
-      ? "No leftover items loaded — go back to To finish."
+      ? finishMode
+        ? "No leftover items loaded — go back to To finish."
+        : "Load a kit or add items."
       : null;
 
   return (
@@ -506,8 +604,8 @@ export function IssueForm({
             </p>
           )}
           <p className="mt-2 text-sm">
-            Only leftover items are loaded. Tick Give now if stock is here, or
-            leave unticked to keep waiting.
+            Standard uniform card: given items and what is still not given.
+            Tick Give now on leftover items and the price fills in.
           </p>
           {returnTo && (
             <a href={returnTo} className="btn btn-ghost mt-3">
@@ -743,49 +841,20 @@ export function IssueForm({
                     Not finished · {selectedStudent.stillToReceive.label}
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    Items this student still needs
+                    Given and leftover items are on the uniform card below.
+                    Tick Give now to add the price.
                   </p>
-                  <ul className="mt-2 space-y-1 text-sm">
-                    {selectedStudent.stillToReceive.lines.map((line) => {
-                      const hold =
-                        line.holdReason === "held_by_desk"
-                          ? "Collect later"
-                          : line.holdReason === "stock_shortage"
-                            ? "No stock"
-                            : null;
-                      const size = line.sizeLabel
-                        ? ` · ${line.sizeLabel}`
-                        : "";
-                      return (
-                        <li
-                          key={line.itemId}
-                          className="flex flex-wrap items-center gap-2"
-                        >
-                          <span>
-                            {line.qtyOwed}× {line.itemName}
-                            {size}
-                          </span>
-                          <span className="chip">
-                            {moneyChip(line.moneyStatus)}
-                          </span>
-                          {hold && (
-                            <span className="chip chip-warn">{hold}</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                  </ul>
                   <button
                     type="button"
                     onClick={fillWhatsLeft}
-                    className="btn btn-primary mt-3"
+                    className="btn btn-secondary mt-3"
                   >
-                    Load leftover items
+                    Reload leftover items
                   </button>
                 </div>
               ) : (
                 <p className="text-xs text-[var(--muted)]">
-                  Tip: load a kit below. Tick Give now if you have stock.
+                  Load a kit below. Tick Give now and the price fills in.
                 </p>
               )}
             </div>
@@ -798,16 +867,14 @@ export function IssueForm({
         <div className="step-card-head">
           <span className="step-index">2</span>
           <div className="min-w-0 flex-1">
-            <h2 className="card-title">
-              {finishMode ? "Remaining items" : "Kit / items"}
-            </h2>
+            <h2 className="card-title">Student uniform</h2>
             <p className="card-subtitle">
               {finishMode
-                ? "Give now uses campus stock. Untick to leave waiting."
-                : "Load a kit (recommended) or add lines manually"}
+                ? "Given vs not given. Tick leftover items — price fills in."
+                : "Load a kit. Tick Give now on items to issue — price fills in."}
             </p>
           </div>
-          {!finishMode && (
+          {!finishMode && !selectedStudent?.uniformSet && (
           <select
             value={kitId}
             onChange={(e) => applyKit(e.target.value)}
@@ -823,7 +890,20 @@ export function IssueForm({
           )}
         </div>
         <div className="step-card-body form-stack">
-          {lines.map((line, index) => {
+          {cardRows.length > 0 && (
+            <StudentUniformCard
+              title={
+                selectedStudent?.uniformSet?.label ||
+                selectedKit?.name ||
+                "Uniform set"
+              }
+              rows={cardRows}
+              onToggleGive={onToggleGive}
+              onSizeChange={onCardSizeChange}
+              selectedCents={selectedCents}
+            />
+          )}
+          {extraLineIndexes.map(({ line, index }) => {
             const item = items.find((i) => i.id === line.itemId);
             const onHand = stockFor(line.itemId, line.sizeLabel);
             const shortage = Math.max(0, line.qtyRequested - onHand);
@@ -837,7 +917,7 @@ export function IssueForm({
                     className="field-label"
                     htmlFor={`issue-item-${index}`}
                   >
-                    Item
+                    Extra item
                   </label>
                   <select
                     id={`issue-item-${index}`}
@@ -920,6 +1000,13 @@ export function IssueForm({
                       </span>
                     </span>
                   </label>
+                  {item?.unitPriceCents ? (
+                    <span className={`chip ${line.fulfil ? "chip-accent" : ""}`}>
+                      {line.fulfil
+                        ? `KES ${kesFromCents(item.unitPriceCents * line.qtyRequested)}`
+                        : `KES ${kesFromCents(item.unitPriceCents)} each`}
+                    </span>
+                  ) : null}
                   {line.fulfil ? (
                     <>
                       <span className="chip">On hand {onHand}</span>
@@ -938,7 +1025,7 @@ export function IssueForm({
               </div>
             );
           })}
-          {lines.length === 0 && (
+          {lines.length === 0 && cardRows.length === 0 && (
             <p className="field-hint">
               {finishMode
                 ? "No leftover items loaded. Go back to the list."
@@ -947,7 +1034,7 @@ export function IssueForm({
           )}
           {!finishMode && (
           <button type="button" onClick={addLine} className="btn btn-secondary">
-            Add item line
+            Add extra item
           </button>
           )}
         </div>
@@ -963,7 +1050,7 @@ export function IssueForm({
                 ? "Already marked paid — you can give the items now."
                 : allHold && !amountEntered
                 ? "Nothing is leaving stock — payment is optional."
-                : "How the parent paid — method, reference, optional amount (KES)"}
+                : "Amount fills from Give now items. Method, reference, and status as usual."}
             </p>
           </div>
         </div>
@@ -1022,7 +1109,7 @@ export function IssueForm({
           </div>
           <div className="field-group">
             <label className="field-label" htmlFor="issue-pay-amount">
-              Amount (KES, optional)
+              Amount (KES)
             </label>
             <input
               id="issue-pay-amount"
@@ -1032,10 +1119,12 @@ export function IssueForm({
               inputMode="numeric"
               value={paymentAmountKes}
               onChange={(e) => setPaymentAmountKes(e.target.value)}
-              placeholder="e.g. 4500"
+              placeholder="Filled from Give now"
               className="field"
             />
-            <p className="field-hint">Used for end-of-day cash-up reports</p>
+            <p className="field-hint">
+              Fills when you tick leftover items. You can still edit it.
+            </p>
           </div>
         </div>
       </section>

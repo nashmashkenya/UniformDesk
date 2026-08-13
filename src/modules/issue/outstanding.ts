@@ -379,7 +379,89 @@ export async function loadStillToReceiveByStudent(
   return map;
 }
 
+export async function loadUniformSetsByStudent(
+  schoolId: string,
+  studentIds: string[],
+) {
+  if (!studentIds.length) {
+    return new Map<
+      string,
+      {
+        planId: string;
+        kitId: string | null;
+        label: string;
+        lines: {
+          itemId: string;
+          itemName: string;
+          sku: string;
+          qtyNeeded: number;
+          qtyReceived: number;
+          qtyLeft: number;
+          sizeLabel: string | null;
+          moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
+          holdReason: string | null;
+        }[];
+      }
+    >();
+  }
+
+  const plans = await prisma.studentUniformPlan.findMany({
+    where: {
+      schoolId,
+      studentId: { in: studentIds },
+      status: "open",
+    },
+    include: {
+      lines: {
+        include: { item: { select: { id: true, name: true, sku: true } } },
+        orderBy: { item: { name: "asc" } },
+      },
+    },
+  });
+
+  const map = new Map<
+    string,
+    {
+      planId: string;
+      kitId: string | null;
+      label: string;
+      lines: {
+        itemId: string;
+        itemName: string;
+        sku: string;
+        qtyNeeded: number;
+        qtyReceived: number;
+        qtyLeft: number;
+        sizeLabel: string | null;
+        moneyStatus: "unpaid" | "paid" | "deposit" | "waived";
+        holdReason: string | null;
+      }[];
+    }
+  >();
+
+  for (const plan of plans) {
+    map.set(plan.studentId, {
+      planId: plan.id,
+      kitId: plan.kitId,
+      label: plan.label,
+      lines: plan.lines.map((l) => ({
+        itemId: l.itemId,
+        itemName: l.item.name,
+        sku: l.item.sku,
+        qtyNeeded: l.qtyNeeded,
+        qtyReceived: l.qtyReceived,
+        qtyLeft: owed(l.qtyNeeded, l.qtyReceived),
+        sizeLabel: l.sizeLabel,
+        moneyStatus: l.moneyStatus,
+        holdReason: l.holdReason,
+      })),
+    });
+  }
+  return map;
+}
+
 export {
   holdReasonLabel,
   moneyStatusLabel,
 } from "@/modules/issue/plan-labels";
+
