@@ -50,9 +50,6 @@ export default async function SupplierHomePage() {
       ])
     : [0, 0];
 
-  const openDeliveries = deliveries.filter(
-    (d) => d.status === "packed" || d.status === "in_transit",
-  ).length;
   const unpaid = invoices.filter((i) => i.status === "issued").length;
   const displayName = brand?.brandName ?? user.supplierName;
   const activeTeam = team.filter((m) => m.active).length;
