@@ -197,7 +197,12 @@ export function IssueForm({
 
   const allHold = lines.length > 0 && lines.every((l) => !l.fulfil);
   const amountEntered = paymentAmountKes.trim() !== "";
-  const needsPaymentMethod = !allHold || amountEntered;
+  const leftoverAlreadyPaid =
+    moneyStatus === "paid" ||
+    moneyStatus === "deposit" ||
+    moneyStatus === "waived";
+  const needsPaymentMethod =
+    (!allHold && !leftoverAlreadyPaid) || amountEntered;
 
   function selectStudent(student: IssueDeskStudent) {
     setStudentId(student.id);
@@ -233,7 +238,10 @@ export function IssueForm({
     const anyPaid = still.lines.some(
       (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
     );
-    if (anyPaid) setMoneyStatus("paid");
+    if (anyPaid) {
+      setMoneyStatus("paid");
+      setPaymentMethod("cash");
+    }
     setError(null);
   }
 
@@ -251,7 +259,7 @@ export function IssueForm({
         (l) => l.moneyStatus === "paid" || l.moneyStatus === "deposit",
       );
       setMoneyStatus(anyPaid ? "paid" : "unpaid");
-      if (!anyPaid) setPaymentMethod("");
+      setPaymentMethod(anyPaid ? "cash" : "");
     }
     setPrefillDone(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep-link prefill
@@ -465,12 +473,16 @@ export function IssueForm({
     }
   }
 
-  const canSubmit = Boolean(
-    studentId &&
-      lines.length &&
-      !pending &&
-      (paymentMethod || (allHold && !amountEntered)),
-  );
+  useEffect(() => {
+    if (needsPaymentMethod && !paymentMethod) setPaymentMethod("cash");
+  }, [needsPaymentMethod, paymentMethod]);
+
+  const canSubmit = Boolean(studentId && lines.length && !pending);
+  const submitHint = !studentId
+    ? "Student is missing — go back to the list."
+    : !lines.length
+      ? "No leftover items loaded — go back to To finish."
+      : null;
 
   return (
     <form onSubmit={onSubmit} className="page-stack pb-2">
@@ -947,7 +959,9 @@ export function IssueForm({
           <div>
             <h2 className="card-title">Payment</h2>
             <p className="card-subtitle">
-              {allHold && !amountEntered
+              {leftoverAlreadyPaid
+                ? "Already marked paid — you can give the items now."
+                : allHold && !amountEntered
                 ? "Nothing is leaving stock — payment is optional."
                 : "How the parent paid — method, reference, optional amount (KES)"}
             </p>
@@ -1035,6 +1049,11 @@ export function IssueForm({
       {successNote && <p className="field-ok">{successNote}</p>}
 
       <div className="sticky-actions no-print">
+        {submitHint && (
+          <p className="field-hint mb-2" role="status">
+            {submitHint}
+          </p>
+        )}
         <button
           type="submit"
           disabled={!canSubmit}
