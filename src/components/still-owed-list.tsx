@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import {
   holdReasonLabel,
   moneyStatusLabel,
-} from "@/modules/issue/outstanding";
+} from "@/modules/issue/plan-labels";
 
 export type StillOwedRow = {
   planId: string;
