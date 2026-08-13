@@ -49,11 +49,12 @@ function matchesFilter(row: StillOwedRow, filter: FilterId) {
 
 export function StillOwedList({
   rows,
-  issueHref,
+  issueHrefTemplate,
   emptyHint,
 }: {
   rows: StillOwedRow[];
-  issueHref: (studentId: string) => string;
+  /** Use `{studentId}` where the student id should go. */
+  issueHrefTemplate: string;
   emptyHint?: string;
 }) {
   const [query, setQuery] = useState("");
@@ -178,7 +179,10 @@ export function StillOwedList({
               </ul>
               <div className="mt-3 no-print">
                 <Link
-                  href={issueHref(row.student.id)}
+                  href={issueHrefTemplate.replaceAll(
+                    "{studentId}",
+                    row.student.id,
+                  )}
                   className="btn btn-primary"
                 >
                   Finish

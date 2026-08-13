@@ -75,9 +75,7 @@ export default async function SupplierIncompletePage({
           <div className="card-body">
             <StillOwedList
               rows={rows}
-              issueHref={(studentId) =>
-                `/supplier/issue?schoolId=${selected.id}&studentId=${studentId}&from=finish`
-              }
+              issueHrefTemplate={`/supplier/issue?schoolId=${selected.id}&studentId={studentId}&from=finish`}
               emptyHint="No students here are waiting for uniforms."
             />
           </div>

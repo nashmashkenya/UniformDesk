@@ -41,7 +41,7 @@ export default async function IncompleteUniformsPage() {
           <div className="card-body">
             <StillOwedList
               rows={rows}
-              issueHref={(studentId) => `/issue?studentId=${studentId}&from=finish`}
+              issueHrefTemplate="/issue?studentId={studentId}&from=finish"
               emptyHint="No students are waiting for uniforms right now."
             />
           </div>
