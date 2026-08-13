@@ -15,26 +15,30 @@ import { loadIssueDeskData } from "@/modules/issue/issue-desk";
 export default async function SupplierIssuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ schoolId?: string; studentId?: string }>;
+  searchParams: Promise<{ schoolId?: string; studentId?: string; from?: string }>;
 }) {
   const user = await requireSupplierUser();
   if (!canSupplierIssue(user.role)) {
     return (
       <div className="page-stack">
-        <h1 className="page-title">Co-issue</h1>
+        <h1 className="page-title">Issue</h1>
         <p className="page-sub">No permission to issue uniforms.</p>
       </div>
     );
   }
 
-  const { schoolId: schoolIdParam, studentId } = await searchParams;
+  const { schoolId: schoolIdParam, studentId, from } = await searchParams;
   const campuses = await listActorCampuses(user);
   const selected = pickCampus(campuses, schoolIdParam);
   const isAdmin = canSupplierManage(user.role);
+  const finishMode = from === "finish" && Boolean(studentId);
+  const returnTo = finishMode
+    ? `/supplier/incomplete${selected ? `?schoolId=${selected.id}` : ""}`
+    : undefined;
 
   if (!selected) {
     return (
-      <SupplierCampusEmptyState title="Co-issue desk" isAdmin={isAdmin} />
+      <SupplierCampusEmptyState title="Issue desk" isAdmin={isAdmin} />
     );
   }
 
@@ -48,12 +52,16 @@ export default async function SupplierIssuePage({
     >
       <header className="page-header animate-rise">
         <div className="page-header-main">
-          <h1 className="page-title">Co-issue desk</h1>
+          <h1 className="page-title">
+            {finishMode ? "Finish uniform" : "Issue desk"}
+          </h1>
           <p className="page-sub">
-            {campuses.length === 1
+            {finishMode
+              ? "Give the remaining items, then you return to the To finish list."
+              : campuses.length === 1
               ? `Issuing at ${selected.name} (${selected.code}).`
-              : "Choose your campus, then issue — student, items, payment method and reference."}{" "}
-            Stock comes from the school ledger.
+              : "Choose your campus, then pick the student, items, and payment."}{" "}
+            {!finishMode && "Stock comes from the school ledger."}
           </p>
         </div>
         {campuses.length === 1 && (
@@ -63,7 +71,7 @@ export default async function SupplierIssuePage({
         )}
       </header>
 
-      {campuses.length > 1 && (
+      {campuses.length > 1 && !finishMode && (
         <section className="card national-panel no-print">
           <div className="card-body">
             <SupplierSchoolSelect
@@ -90,6 +98,8 @@ export default async function SupplierIssuePage({
         slipPathPrefix="/supplier/slips"
         coIssue
         initialStudentId={studentId}
+        finishMode={finishMode}
+        returnTo={returnTo}
       />
     </div>
   );

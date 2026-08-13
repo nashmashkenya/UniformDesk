@@ -6,22 +6,26 @@ import { loadIssueDeskData } from "@/modules/issue/issue-desk";
 export default async function IssuePage({
   searchParams,
 }: {
-  searchParams: Promise<{ studentId?: string }>;
+  searchParams: Promise<{ studentId?: string; from?: string }>;
 }) {
   const user = await requireSchoolUser();
   if (!canWrite(user.role)) redirect("/");
 
-  const { studentId } = await searchParams;
+  const { studentId, from } = await searchParams;
   const desk = await loadIssueDeskData(user.schoolId);
+  const finishMode = from === "finish" && Boolean(studentId);
 
   return (
     <div className="page-stack mx-auto max-w-3xl">
       <header className="page-header animate-rise">
         <div className="page-header-main">
-          <h1 className="page-title">Issue desk</h1>
+          <h1 className="page-title">
+            {finishMode ? "Finish uniform" : "Issue desk"}
+          </h1>
           <p className="page-sub">
-            Co-issue at admission — student, items, then payment method and
-            reference. No parent slip needed. Shortages stay on Still to receive.
+            {finishMode
+              ? "Give the remaining items, then you return to the To finish list."
+              : "Student, items, then payment. Leftover items stay on To finish."}
           </p>
         </div>
       </header>
@@ -33,6 +37,8 @@ export default async function IssuePage({
         items={desk.items}
         balances={desk.balances}
         initialStudentId={studentId}
+        finishMode={finishMode}
+        returnTo={finishMode ? "/incomplete" : undefined}
       />
     </div>
   );

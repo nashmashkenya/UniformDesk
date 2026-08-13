@@ -73,7 +73,7 @@ export default async function SupplierHomePage() {
             Issue
           </Link>
           <Link href="/supplier/incomplete" className="btn btn-hero-ghost">
-            Still owed
+            To finish
           </Link>
           <Link href="/supplier/reports" className="btn btn-hero-ghost">
             Reports
@@ -135,7 +135,7 @@ export default async function SupplierHomePage() {
                 </Link>
                 <span className="text-[var(--muted)]">
                   {" "}
-                  — test one student, then use Still owed and Reports
+                  — test one student, then use To finish and Reports
                 </span>
               </li>
             </ol>
@@ -157,7 +157,7 @@ export default async function SupplierHomePage() {
               ]
             : [
                 { label: "My campuses", value: campuses.length },
-                { label: "Still owed", value: openPlans },
+                { label: "To finish", value: openPlans },
                 { label: "Issued today", value: issuedToday },
               ]
           ).map((card) => (
@@ -234,7 +234,7 @@ export default async function SupplierHomePage() {
         <section className="national-note animate-rise">
           <strong>Staff access</strong>
           <ul>
-            <li>Issue uniforms and clear still-owed queues on your campuses</li>
+            <li>Issue uniforms and finish leftover kits on your campuses</li>
             <li>View issued-today and campus stock reports</li>
             <li>
               Ask an admin for schools, products, deliveries, invoices, or team

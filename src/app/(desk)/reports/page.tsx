@@ -22,7 +22,7 @@ export default async function ReportsPage() {
           <p className="page-sub">
             Issued today, shortages, stock, and still to receive.{" "}
             <Link href="/incomplete" className="text-[var(--accent)]">
-              Still owed →
+              To finish →
             </Link>
             {" · "}
             <Link href="/stock" className="text-[var(--accent)]">

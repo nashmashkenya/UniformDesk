@@ -44,7 +44,7 @@ export default async function StudentHistoryPage({
         <section className="card border-[color-mix(in_srgb,var(--warn)_30%,var(--line))]">
           <div className="card-header">
             <div>
-              <h2 className="card-title text-base">Still to receive</h2>
+              <h2 className="card-title text-base">To finish</h2>
               <p className="card-subtitle">{still.label}</p>
             </div>
             <span className="chip chip-warn">{still.totalOwed} left</span>
@@ -57,8 +57,8 @@ export default async function StudentHistoryPage({
                 </li>
               ))}
             </ul>
-            <Link href="/issue" className="btn btn-primary">
-              Issue what’s left
+            <Link href={`/issue?studentId=${student.id}&from=finish`} className="btn btn-primary">
+              Finish
             </Link>
           </div>
         </section>

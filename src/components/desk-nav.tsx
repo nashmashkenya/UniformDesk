@@ -25,8 +25,8 @@ const primary: NavItem[] = [
   { href: "/stock", label: "Stock", desc: "Balances by size", icon: NavIcons.stock },
   {
     href: "/incomplete",
-    label: "Still owed",
-    desc: "Incomplete uniforms",
+    label: "To finish",
+    desc: "Uniforms not fully given",
     icon: NavIcons.reports,
   },
 ];
@@ -318,7 +318,7 @@ export function DeskNav({
             className={`mobile-dock-link ${isActive(pathname, "/incomplete") ? "is-active" : ""}`}
           >
             <NavIcons.reports />
-            <span>Owed</span>
+            <span>Finish</span>
           </Link>
 
           <button

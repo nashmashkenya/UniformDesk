@@ -21,6 +21,8 @@ export function IssueDeskShell({
   slipPathPrefix = "/slips",
   coIssue = false,
   initialStudentId,
+  finishMode = false,
+  returnTo,
 }: {
   schoolId: string;
   schoolName: string;
@@ -30,8 +32,9 @@ export function IssueDeskShell({
   balances: IssueDeskBalance[];
   slipPathPrefix?: string;
   coIssue?: boolean;
-  /** Deep-link from Still owed — preselect student and load owed lines */
   initialStudentId?: string;
+  finishMode?: boolean;
+  returnTo?: string;
 }) {
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
@@ -50,7 +53,7 @@ export function IssueDeskShell({
 
   return (
     <>
-      {coIssue && (
+      {coIssue && !finishMode && (
         <p className="card-inset no-print text-sm">
           Co-issue at <strong>{schoolName}</strong> — using school stock and
           roster. Slip stays on the school record; you are recorded as issuer.
@@ -70,6 +73,8 @@ export function IssueDeskShell({
         balances={balances}
         slipPathPrefix={slipPathPrefix}
         initialStudentId={initialStudentId}
+        finishMode={finishMode}
+        returnTo={returnTo}
       />
     </>
   );

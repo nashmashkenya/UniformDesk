@@ -226,8 +226,8 @@ describe("Phase A — issue now vs hold + kit status", () => {
     );
     expect(still?.lines[0]?.holdReason).toBe("stock_shortage");
     expect(still?.lines[0]?.sizeLabel).toBe("M");
-    expect(holdReasonLabel(still?.lines[0]?.holdReason)).toBe("Stock short");
-    expect(holdReasonLabel("held_by_desk")).toBe("Held at desk");
+    expect(holdReasonLabel(still?.lines[0]?.holdReason)).toBe("No stock");
+    expect(holdReasonLabel("held_by_desk")).toBe("Collect later");
   });
 });
 

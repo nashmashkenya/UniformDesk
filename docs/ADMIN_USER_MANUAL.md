@@ -25,7 +25,7 @@ Use this for first setup, training, or looking up a setting.
 10. [Deliveries and campus stock](#10-deliveries-and-campus-stock)
 11. [Orders and invoices (optional)](#11-orders-and-invoices-optional)
 12. [Co-issue on admission day](#12-co-issue-on-admission-day)
-13. [Still owed](#13-still-owed)
+13. [To finish](#13-to-finish)
 14. [Reports](#14-reports)
 15. [Activity, notifications, and search](#15-activity-notifications-and-search)
 16. [Branding and look](#16-branding-and-look)
@@ -76,7 +76,7 @@ UniformDesk uses short labels on screens, search, and printouts. Meanings:
 | **STK** | **S**IM **T**oolkit prompt — M-Pesa push to a phone (invoice collection). |
 | **Campus** | A **school** linked to your organisation — where stock and co-issue happen. |
 | **Co-issue** | Issuing the admission kit to a student at the campus. |
-| **Still owed** | Students whose kit is not fully issued yet (incomplete). |
+| **To finish** | Students whose kit is not fully given yet |
 | **Kit** | A named admission set (e.g. Form 1 Girls) with default items and quantities. |
 | **Slip** | The issue record / printout created when you co-issue a student. |
 | **Ref / reference** | Receipt number, M-Pesa code, or bank reference stored with payment method (not an amount on issue). |
@@ -101,7 +101,7 @@ Login → Create school → Products → Select products onto school + 1 kit
 
 ```text
 Staff (or you): Issue → Student → Kit → Method/Ref → Confirm
-             → Still owed only if short
+             → To finish only if short
 ```
 
 | Needed for issue day | Can wait |
@@ -135,7 +135,7 @@ Menus follow the work: **daily desk** on the top bar, **setup in order** under M
 |------|---------|
 | **Home** | Setup path + overview |
 | **Issue** | Co-issue uniforms at a campus |
-| **Still owed** | Students with incomplete kits |
+| **To finish** | Students with leftover kit items |
 | **Reports** | Issued today and campus stock |
 
 **More menu** (setup → optional billing → team)
@@ -211,7 +211,7 @@ Optional: create an **Order** first, then “Create delivery from order”. Not 
 
 1. **Issue** → pick school → test student → kit → method/ref → confirm  
 2. Check **Reports → Issued today**  
-3. Check **Still owed** if you left a shortage  
+3. Check **To finish** if you left a shortage  
 
 You are ready for live admission. Invoice when you are ready to bill — not before.
 
@@ -240,7 +240,7 @@ On each staff card:
 1. Tick / untick campuses under **Campus access**
 2. Click **Save campuses**
 
-| Staff campuses | What they see on Issue / Still owed / Reports |
+| Staff campuses | What they see on Issue / To finish / Reports |
 |----------------|-----------------------------------------------|
 | **One** | That school only — no school picker |
 | **Several** | Picker shows only their schools |
@@ -405,7 +405,7 @@ Desk payment on **Issue** (method + reference) is separate from invoice collecti
 6. Enter **payment method**, **reference**, optional **KES amount**  
 7. Confirm  
 
-What happens: slip with your name as issuer; issued lines reduce stock; held/short lines open **Still owed** with reason. Slip shows a **parent receipt summary** (received vs pending).
+What happens: slip with your name as issuer; issued lines reduce stock; held/short lines open **To finish** with reason. Slip shows a **parent receipt summary** (received vs pending).
 
 ### Reports for fulfilment
 
@@ -414,14 +414,18 @@ What happens: slip with your name as issuer; issued lines reduce stock; held/sho
 
 ---
 
-## 13. Still owed
+## 13. To finish
 
-**Path:** More → **Still owed** (or from Reports)
+**Path:** **To finish** (top bar) — also from Reports
 
-1. Select school if needed  
-2. Review the queue  
-3. **Issue what’s left** to return to the issue desk  
-4. **Print list** for a paper follow-up  
+Students who have not received their full uniform.
+
+1. Search or filter the list  
+2. Tap **Finish**  
+3. Give remaining items, then you return to the list  
+4. **Print list** for paper follow-up  
+
+If the chip says **No stock**, post a DN to campus stock first.  
 
 ---
 
@@ -476,7 +480,7 @@ Use the on-page **Print** button (hides menus). Prefer **A4 portrait**.
 | Document | Where |
 |----------|--------|
 | Issue slip | Slip detail |
-| Still owed list | Still owed |
+| To finish list | To finish |
 | Issued / stock report | Reports |
 | Delivery note (DN) | Delivery detail |
 | Invoice (INV) | Invoice detail |
@@ -494,13 +498,13 @@ Use the on-page **Print** button (hides menus). Prefer **A4 portrait**.
 ### During admission
 
 1. Staff (or you) on **Issue**  
-2. Watch **Still owed**  
+2. Watch **To finish**  
 3. Admin monitors Home / Activity  
 
 ### End of day
 
 1. Reports → **Issued today** → print if required  
-2. Still owed → print follow-up list  
+2. To finish → print follow-up list  
 3. Plan next DN + **Post to campus stock** for shortages  
 4. Invoices — only if you are collecting B2B payments today  
 
@@ -555,7 +559,7 @@ No. Each school has its own campus stock and catalogue.
 |------|-------|-------------|
 | Home | Yes | Setup path + monitor |
 | Issue | Yes | Co-issue |
-| Still owed | Yes | Incomplete kits |
+| To finish | Yes | Leftover kit items |
 | Reports | Yes | Issued + stock |
 | Schools | Yes (More) | 1. Create/link + catalogue |
 | Products | Yes (More) | 2. Master SKUs |

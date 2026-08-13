@@ -380,8 +380,8 @@ export async function loadStillToReceiveByStudent(
 }
 
 export function holdReasonLabel(reason: string | null | undefined) {
-  if (reason === "held_by_desk") return "Held at desk";
-  if (reason === "stock_shortage") return "Stock short";
+  if (reason === "held_by_desk") return "Collect later";
+  if (reason === "stock_shortage") return "No stock";
   return null;
 }
 

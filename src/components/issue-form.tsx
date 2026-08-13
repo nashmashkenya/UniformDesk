@@ -42,6 +42,8 @@ export function IssueForm({
   balances: initialBalances,
   cachedMode = false,
   initialStudentId,
+  finishMode = false,
+  returnTo,
 }: {
   schoolId: string;
   students: IssueDeskStudent[];
@@ -49,8 +51,12 @@ export function IssueForm({
   items: IssueDeskItem[];
   balances: IssueDeskBalance[];
   cachedMode?: boolean;
-  /** Deep-link from Still owed */
+  /** Deep-link from To finish */
   initialStudentId?: string;
+  /** Skip student/kit search — leftover items only */
+  finishMode?: boolean;
+  /** After save, go back to the To finish list */
+  returnTo?: string;
   /** @deprecated Parent slip not required */
   slipPathPrefix?: string;
 }) {
@@ -215,7 +221,7 @@ export function IssueForm({
         itemId: owed.itemId,
         sizeLabel: preferred,
         qtyRequested: owed.qtyOwed,
-        fulfil: true,
+        fulfil: stockFor(owed.itemId, preferred) >= owed.qtyOwed,
       };
     });
   }
@@ -379,6 +385,10 @@ export function IssueForm({
         void patchIssueSnapshotBalances(schoolId, stockLines);
         window.dispatchEvent(new Event("ud-issue-queued"));
         resetForm();
+        if (returnTo) {
+          startTransition(() => router.push(returnTo));
+          return;
+        }
         setQueuedNote(note);
       }
 
@@ -415,6 +425,10 @@ export function IssueForm({
           }`
         : moneyChip(moneyStatus);
       resetForm();
+      if (returnTo) {
+        startTransition(() => router.push(returnTo));
+        return;
+      }
       setSuccessNote(
         `Saved for ${studentLabel}. No parent slip needed — ${
           paymentMethod ? `payment: ${payLabel}` : `status: ${payLabel}`
@@ -433,6 +447,10 @@ export function IssueForm({
           void patchIssueSnapshotBalances(schoolId, lines);
           window.dispatchEvent(new Event("ud-issue-queued"));
           resetForm();
+          if (returnTo) {
+            startTransition(() => router.push(returnTo));
+            return;
+          }
           setQueuedNote(
             "Connection problem. Issue queued and will sync automatically.",
           );
@@ -456,6 +474,36 @@ export function IssueForm({
 
   return (
     <form onSubmit={onSubmit} className="page-stack pb-2">
+      {finishMode ? (
+        <section className="card-inset border-[color-mix(in_srgb,var(--accent)_35%,var(--line))]">
+          <p className="text-sm font-semibold">
+            Finish uniform
+            {selectedStudent
+              ? ` · ${selectedStudent.fullName}`
+              : ""}
+          </p>
+          {selectedStudent && (
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              {selectedStudent.admissionNo}
+              {selectedStudent.className
+                ? ` · ${selectedStudent.className}`
+                : ""}
+              {(selectedStudent.parentName || selectedStudent.parentPhone)
+                ? ` · ${[selectedStudent.parentName, selectedStudent.parentPhone].filter(Boolean).join(" · ")}`
+                : ""}
+            </p>
+          )}
+          <p className="mt-2 text-sm">
+            Only leftover items are loaded. Tick Give now if stock is here, or
+            leave unticked to keep waiting.
+          </p>
+          {returnTo && (
+            <a href={returnTo} className="btn btn-ghost mt-3">
+              Back to list
+            </a>
+          )}
+        </section>
+      ) : (
       <section className="step-card">
         <div className="step-card-head">
           <span className="step-index">1</span>
@@ -638,7 +686,7 @@ export function IssueForm({
                         <span className="flex flex-wrap gap-1">
                           {student.stillToReceive &&
                             student.stillToReceive.totalOwed > 0 && (
-                              <span className="chip chip-warn">Still owed</span>
+                              <span className="chip chip-warn">To finish</span>
                             )}
                           {selected && (
                             <span className="chip chip-ok">Selected</span>
@@ -680,21 +728,21 @@ export function IssueForm({
               selectedStudent.stillToReceive.totalOwed > 0 ? (
                 <div className="card-inset border-[color-mix(in_srgb,var(--warn)_35%,var(--line))] bg-[var(--warn-soft)]">
                   <p className="text-sm font-semibold">
-                    Kit status · {selectedStudent.stillToReceive.label}
+                    Not finished · {selectedStudent.stillToReceive.label}
                   </p>
                   <p className="mt-1 text-xs text-[var(--muted)]">
-                    Received vs still owed for this student’s open plan
+                    Items this student still needs
                   </p>
                   <ul className="mt-2 space-y-1 text-sm">
                     {selectedStudent.stillToReceive.lines.map((line) => {
                       const hold =
                         line.holdReason === "held_by_desk"
-                          ? "Held at desk"
+                          ? "Collect later"
                           : line.holdReason === "stock_shortage"
-                            ? "Stock short"
+                            ? "No stock"
                             : null;
                       const size = line.sizeLabel
-                        ? ` · size ${line.sizeLabel}`
+                        ? ` · ${line.sizeLabel}`
                         : "";
                       return (
                         <li
@@ -705,7 +753,6 @@ export function IssueForm({
                             {line.qtyOwed}× {line.itemName}
                             {size}
                           </span>
-                          <span className="chip chip-warn">Owed</span>
                           <span className="chip">
                             {moneyChip(line.moneyStatus)}
                           </span>
@@ -721,28 +768,34 @@ export function IssueForm({
                     onClick={fillWhatsLeft}
                     className="btn btn-primary mt-3"
                   >
-                    Issue what’s left
+                    Load leftover items
                   </button>
                 </div>
               ) : (
                 <p className="text-xs text-[var(--muted)]">
-                  Tip: load a kit below. Tick Issue now or Hold on each line.
+                  Tip: load a kit below. Tick Give now if you have stock.
                 </p>
               )}
             </div>
           )}
         </div>
       </section>
+      )}
 
       <section className="step-card">
         <div className="step-card-head">
           <span className="step-index">2</span>
           <div className="min-w-0 flex-1">
-            <h2 className="card-title">Kit / items</h2>
+            <h2 className="card-title">
+              {finishMode ? "Remaining items" : "Kit / items"}
+            </h2>
             <p className="card-subtitle">
-              Load a kit (recommended) or add lines manually
+              {finishMode
+                ? "Give now uses campus stock. Untick to leave waiting."
+                : "Load a kit (recommended) or add lines manually"}
             </p>
           </div>
+          {!finishMode && (
           <select
             value={kitId}
             onChange={(e) => applyKit(e.target.value)}
@@ -755,6 +808,7 @@ export function IssueForm({
               </option>
             ))}
           </select>
+          )}
         </div>
         <div className="step-card-body form-stack">
           {lines.map((line, index) => {
@@ -848,9 +902,9 @@ export function IssueForm({
                       }
                     />
                     <span>
-                      <span className="field-check-title">Issue now</span>
+                      <span className="field-check-title">Give now</span>
                       <span className="field-check-sub">
-                        Untick to Hold (still owed)
+                        Untick to keep waiting
                       </span>
                     </span>
                   </label>
@@ -866,18 +920,24 @@ export function IssueForm({
                       )}
                     </>
                   ) : (
-                    <span className="chip chip-warn">Hold</span>
+                    <span className="chip chip-warn">Waiting</span>
                   )}
                 </div>
               </div>
             );
           })}
           {lines.length === 0 && (
-            <p className="field-hint">Load a kit or add item lines to continue.</p>
+            <p className="field-hint">
+              {finishMode
+                ? "No leftover items loaded. Go back to the list."
+                : "Load a kit or add item lines to continue."}
+            </p>
           )}
+          {!finishMode && (
           <button type="button" onClick={addLine} className="btn btn-secondary">
             Add item line
           </button>
+          )}
         </div>
       </section>
 
@@ -888,7 +948,7 @@ export function IssueForm({
             <h2 className="card-title">Payment</h2>
             <p className="card-subtitle">
               {allHold && !amountEntered
-                ? "Hold-only — payment method optional. Set money status for Still owed."
+                ? "Nothing is leaving stock — payment is optional."
                 : "How the parent paid — method, reference, optional amount (KES)"}
             </p>
           </div>
@@ -980,9 +1040,11 @@ export function IssueForm({
           disabled={!canSubmit}
           className="btn btn-primary btn-block"
         >
-          {pending
+            {pending
             ? "Saving…"
-            : online && !cachedMode
+            : finishMode
+              ? "Give remaining items"
+              : online && !cachedMode
               ? "Save issue"
               : "Queue issue offline"}
         </button>

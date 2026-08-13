@@ -136,7 +136,7 @@ export default async function SupplierReportsPage({
           href={`/supplier/incomplete?${schoolQs}`}
           className="btn btn-ghost"
         >
-          Still owed →
+          To finish →
         </Link>
       </div>
 
@@ -151,7 +151,7 @@ export default async function SupplierReportsPage({
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
               { label: "Issued today", value: stats.issuedToday },
-              { label: "Still owed", value: stats.stillOwedPlans },
+              { label: "To finish", value: stats.stillOwedPlans },
               { label: "Stock lines", value: stats.balanceLines },
               { label: "Low stock", value: stats.lowStock },
             ].map((card) => (
@@ -416,7 +416,7 @@ export default async function SupplierReportsPage({
             <div className="card-header">
               <div>
                 <h2 className="card-title text-base">
-                  Still to receive (sample)
+                  To finish (sample)
                 </h2>
                 <p className="card-subtitle">Incomplete kits at this school</p>
               </div>

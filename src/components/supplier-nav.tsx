@@ -37,8 +37,8 @@ const deskPrimary: NavItem[] = [
   },
   {
     href: "/supplier/incomplete",
-    label: "Still owed",
-    desc: "Incomplete uniforms",
+    label: "To finish",
+    desc: "Uniforms not fully given",
     icon: NavIcons.shortage,
     section: "Daily desk",
   },
@@ -419,7 +419,7 @@ export function SupplierNav({
             className={`mobile-dock-link ${isActive(pathname, "/supplier/incomplete") ? "is-active" : ""}`}
           >
             <NavIcons.shortage />
-            <span>Owed</span>
+            <span>Finish</span>
           </Link>
           <Link
             href="/supplier/issue"

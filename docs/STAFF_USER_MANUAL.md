@@ -20,7 +20,7 @@ Use this when you start work, on admission day, or when you need a quick reminde
 5. [Campus access (which schools you can work on)](#5-campus-access-which-schools-you-can-work-on)
 6. [Co-issue on admission day](#6-co-issue-on-admission-day)
 7. [Issue slips](#7-issue-slips)
-8. [Still owed](#8-still-owed)
+8. [To finish](#8-to-finish)
 9. [Reports](#9-reports)
 10. [Home (Issue desk)](#10-home-issue-desk)
 11. [Activity, notifications, and search](#11-activity-notifications-and-search)
@@ -69,7 +69,7 @@ You do **not** set up schools, products, kits, deliveries, stock posting, invoic
 | **M-Pesa** | Mobile money. On issue, choose it as method and type the code in **reference**. |
 | **Campus** | A **school** you are assigned to work at. |
 | **Co-issue** | Issuing the admission kit — your main job. |
-| **Still owed** | Students whose kit is not fully issued (incomplete). |
+| **To finish** | Students whose kit is not fully given (leftovers). |
 | **Kit** | Named admission set (e.g. Form 1 Girls). |
 | **Slip** | Issue record / printout with your name as issuer. |
 | **Ref / reference** | Receipt number, M-Pesa code, or similar — with payment method; amount (KES) is optional. |
@@ -118,13 +118,13 @@ Password reset: ask a **supplier admin** on **Team**. You cannot reset passwords
 |------|---------|
 | **Home** | Issue desk overview and shortcuts |
 | **Issue** | Co-issue uniforms |
-| **Still owed** | Incomplete kits |
+| **To finish** | Uniforms not fully given |
 | **Reports** | Issued today and campus stock |
 | **Activity** (More) | Organisation timeline (read) |
 | **Notifications** (More) | Alerts (read — some links are admin-only) |
 | **Search** (More) | Lookup by keyword / document number |
 
-You will **not** see Schools, Products, Orders, Deliveries, Invoices, Team, or Branding. Phone dock matches the desk: Home, Still owed, Issue, Reports.
+You will **not** see Schools, Products, Orders, Deliveries, Invoices, Team, or Branding. Phone dock matches the desk: Home, To finish, Issue, Reports.
 
 ### Theme and sign out
 
@@ -137,7 +137,7 @@ Account menu → **Sign out** — always sign out on a shared counter.
 
 Your admin assigns campuses on **Team**.
 
-| Your campuses | On Issue / Still owed / Reports |
+| Your campuses | On Issue / To finish / Reports |
 |---------------|----------------------------------|
 | **One** | Auto-selected — no picker |
 | **Several** | Picker shows **only** your schools |
@@ -171,7 +171,7 @@ What happens:
 
 - **Slip** created with **your name** as issuer  
 - Issued lines reduce campus stock  
-- Held lines and shortages go to **Still owed** with size (when known) and money status  
+- Held lines and shortages go to **To finish** with size (when known) and money status  
 - **Kit status** shows owed / paid / hold  
 
 ### Tips
@@ -202,14 +202,17 @@ Only slips for your assigned campuses open.
 
 ---
 
-## 8. Still owed
+## 8. To finish
 
-**Path:** **Still owed** (`/supplier/incomplete`)
+**Path:** **To finish** (`/supplier/incomplete`)
 
-1. Select school if needed  
-2. Review the queue (size and Paid / Unpaid / Deposit chips when known)  
-3. **Issue what’s left** → opens Issue with that student and owed lines loaded  
-4. **Print list** for paper follow-up  
+This is the unfinished list from Issue — not a separate job.
+
+1. Search or filter (Can give now / Collect later / No stock)  
+2. Tap **Finish** on a student  
+3. Only leftover items load. Tick **Give now** if you have stock  
+4. Save — you return to the list for the next student  
+5. **Print list** if you need paper follow-up  
 
 Use after a busy morning, when a size runs out, or at end of day.
 
@@ -235,7 +238,7 @@ You cannot edit stock here — ask admin to post a DN if balances are wrong or e
 
 **Path:** **Home** (`/supplier`)
 
-Shortcuts: Co-issue, Reports, Still owed.  
+Shortcuts: Issue, Reports, To finish.  
 
 Glance numbers (schools, deliveries, orders, invoices) are **read-only context**. You cannot manage those screens.
 
@@ -258,7 +261,7 @@ On-page **Print** button; **A4 portrait**.
 | Document | Where |
 |----------|--------|
 | Issue slip | Slip detail |
-| Still owed list | Still owed |
+| To finish list | To finish |
 | Issued / stock report | Reports |
 
 ---
@@ -295,12 +298,12 @@ Opening those pages as staff usually shows **not found**. That is normal.
 2. Confirm sizes before submit  
 3. Method + reference every time  
 4. Print slip when needed  
-5. **Still owed** when stock runs short  
+5. **To finish** when stock runs short  
 
 ### End of day
 
 1. **Reports → Issued today** → print if required  
-2. **Still owed** → print list  
+2. **To finish** → print list  
 3. Tell admin which sizes / SKUs blocked you (they may need another DN + post stock)  
 4. Sign out  
 
@@ -343,7 +346,7 @@ Yes, if both campuses are assigned. Switch in the picker.
 |------|-------|-------------|
 | Home | Yes | Issue desk start |
 | Issue | Yes | Co-issue |
-| Still owed | Yes | Incomplete kits |
+| To finish | Yes | Leftover kit items |
 | Reports | Yes | Issued + stock |
 | Issue slips | Yes (your campuses) | Review / print |
 | Activity / Notifications / Search | Yes (read) | Awareness |

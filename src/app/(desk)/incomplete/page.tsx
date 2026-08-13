@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PrintButton } from "@/components/print-button";
 import { ReportPrintBanner } from "@/components/report-print-banner";
 import { StillOwedList } from "@/components/still-owed-list";
@@ -13,10 +12,10 @@ export default async function IncompleteUniformsPage() {
     <div className="page-stack">
       <header className="page-header animate-rise no-print">
         <div className="page-header-main">
-          <h1 className="page-title">Still to receive</h1>
+          <h1 className="page-title">To finish</h1>
           <p className="page-sub">
-            Students who have not yet received their full uniform set. Open
-            issue and finish what is left when stock is available.
+            Students who have not received their full uniform. Search, then tap
+            Finish to give the remaining items.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -27,27 +26,23 @@ export default async function IncompleteUniformsPage() {
 
       <div className="print-report print-sheet print-doc">
         <ReportPrintBanner
-          title="Still to receive"
+          title="To finish"
           subtitle={`${user.schoolName ?? "School"} · incomplete uniforms`}
         />
         <section className="card">
           <div className="card-header">
             <div>
-              <h2 className="card-title text-base">Incomplete uniforms</h2>
+              <h2 className="card-title text-base">Not fully given</h2>
               <p className="card-subtitle">
-                Created automatically when a kit is issued and some items are
-                short or skipped
+                Created when some items were held back or there was no stock
               </p>
             </div>
-            <Link href="/issue" className="btn btn-ghost no-print">
-              Issue desk
-            </Link>
           </div>
           <div className="card-body">
             <StillOwedList
               rows={rows}
-              issueHref={(studentId) => `/issue?studentId=${studentId}`}
-              emptyHint="No students are waiting on uniforms right now."
+              issueHref={(studentId) => `/issue?studentId=${studentId}&from=finish`}
+              emptyHint="No students are waiting for uniforms right now."
             />
           </div>
         </section>

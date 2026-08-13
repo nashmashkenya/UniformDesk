@@ -59,17 +59,17 @@ Default visual theme: **National** (institutional green & gold). Switch anytime 
 
 - Admission issue against a **linked** school’s stock and roster.
 - Payment method + reference (no amount).
-- Stock decreases; shortages open **Still owed**.
+- Stock decreases; leftovers go to **To finish**.
 
-### Still owed (`/supplier/incomplete`)
+### To finish (`/supplier/incomplete`)
 
-- Queue of incomplete kits.
-- **Issue what’s left** returns to the issue desk for that student.
+- Students who have not received their full uniform.
+- **Finish** opens leftover items only, then returns to the list.
 
 ### Reports (`/supplier/reports`)
 
 - Issued today and campus stock (view-only).
-- Links to Still owed.
+- Links to To finish.
 - **Print report** — browser print; nav is hidden.
 
 ### Products (`/supplier/catalog`) — admin

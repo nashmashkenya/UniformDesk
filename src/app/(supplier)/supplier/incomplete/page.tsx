@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PrintButton } from "@/components/print-button";
 import { ReportPrintBanner } from "@/components/report-print-banner";
 import { StillOwedList } from "@/components/still-owed-list";
@@ -24,7 +23,7 @@ export default async function SupplierIncompletePage({
 
   if (!selected) {
     return (
-      <SupplierCampusEmptyState title="Still to receive" isAdmin={isAdmin} />
+      <SupplierCampusEmptyState title="To finish" isAdmin={isAdmin} />
     );
   }
 
@@ -34,10 +33,10 @@ export default async function SupplierIncompletePage({
     <div className="page-stack">
       <header className="page-header animate-rise no-print">
         <div className="page-header-main">
-          <h1 className="page-title">Still to receive</h1>
+          <h1 className="page-title">To finish</h1>
           <p className="page-sub">
-            Incomplete admission kits at {selected.name}. Co-issue the remaining
-            items when stock is ready.
+            Students at {selected.name} who have not received their full
+            uniform. Search, then tap Finish to give the remaining items.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -63,29 +62,23 @@ export default async function SupplierIncompletePage({
 
       <div className="print-report print-sheet print-doc">
         <ReportPrintBanner
-          title="Still to receive"
+          title="To finish"
           subtitle={`${user.supplierName ?? "Supplier"} · ${selected.name} (${selected.code})`}
         />
         <section className="card">
           <div className="card-header">
             <div>
-              <h2 className="card-title text-base">Incomplete uniforms</h2>
+              <h2 className="card-title text-base">Not fully given</h2>
               <p className="card-subtitle">{selected.name}</p>
             </div>
-            <Link
-              href={`/supplier/issue?schoolId=${selected.id}`}
-              className="btn btn-ghost no-print"
-            >
-              Co-issue desk
-            </Link>
           </div>
           <div className="card-body">
             <StillOwedList
               rows={rows}
               issueHref={(studentId) =>
-                `/supplier/issue?schoolId=${selected.id}&studentId=${studentId}`
+                `/supplier/issue?schoolId=${selected.id}&studentId=${studentId}&from=finish`
               }
-              emptyHint="No students at this school are waiting on uniforms."
+              emptyHint="No students here are waiting for uniforms."
             />
           </div>
         </section>
