@@ -3,7 +3,7 @@
 # Nixpacks already installs deps — do not add npm ci to buildCommand.
 [build]
 builder = "NIXPACKS"
-buildCommand = "npx prisma generate && npm run build"
+buildCommand = "rm -rf .next && npx prisma generate && npm run build"
 
 [deploy]
 startCommand = "npx prisma migrate deploy && npm run start"
