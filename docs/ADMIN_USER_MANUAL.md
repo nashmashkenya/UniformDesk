@@ -127,29 +127,31 @@ If login fails with a message about school desk being closed, you are using a sc
 
 ### Main navigation (admin)
 
-**Top / primary links**
+Menus follow the work: **daily desk** on the top bar, **setup in order** under More.
+
+**Top / primary links** (daily desk)
 
 | Menu | Purpose |
 |------|---------|
-| **Home** | Overview of schools, deliveries, invoices, team |
+| **Home** | Setup path + overview |
 | **Issue** | Co-issue uniforms at a campus |
+| **Still owed** | Students with incomplete kits |
 | **Reports** | Issued today and campus stock |
-| **Schools** | Create/link schools, open catalogues |
 
-**More menu** (overflow)
+**More menu** (setup → optional billing → team)
 
 | Menu | Purpose |
 |------|---------|
-| **Still owed** | Students with incomplete kits |
-| **Deliveries** | Create DNs and **post to campus stock** |
+| **Schools** | 1. Create/link schools, open catalogues |
+| **Products** | 2. Master SKUs and prices |
+| **Deliveries** | 3. Create DNs and **post to campus stock** |
 | **Orders** | Optional purchase orders |
 | **Invoices** | Optional billing and collection |
+| **Team** | Users, passwords, campus access |
+| **Branding** | Logo mark, colours, support contacts |
 | **Activity** | Timeline of what happened |
 | **Notifications** | Alerts (e.g. DNs waiting for stock post) |
 | **Search** | Find schools, SKUs, orders, DNs, invoices |
-| **Products** | Your master product list (SKUs and prices) |
-| **Team** | Users, passwords, campus access |
-| **Branding** | Logo mark, colours, support contacts |
 
 ### Theme
 
@@ -551,20 +553,20 @@ No. Each school has its own campus stock and catalogue.
 
 | Menu | Admin | Typical job |
 |------|-------|-------------|
-| Home | Yes | Monitor |
+| Home | Yes | Setup path + monitor |
 | Issue | Yes | Co-issue |
-| Reports | Yes | Issued + stock |
-| Schools | Yes | Create/link + catalogue |
 | Still owed | Yes | Incomplete kits |
-| Deliveries | Yes | DN + **post campus stock** |
-| Orders | Yes | Optional POs |
-| Invoices | Yes | Optional bill / collect |
-| Products | Yes | Master SKUs |
-| Team | Yes | Users + campus access |
-| Branding | Yes | White-label |
-| Activity | Yes | Timeline |
-| Notifications | Yes | Alerts (incl. post stock) |
-| Search | Yes | Find records |
+| Reports | Yes | Issued + stock |
+| Schools | Yes (More) | 1. Create/link + catalogue |
+| Products | Yes (More) | 2. Master SKUs |
+| Deliveries | Yes (More) | 3. DN + **post campus stock** |
+| Orders | Yes (More) | Optional POs |
+| Invoices | Yes (More) | Optional bill / collect |
+| Team | Yes (More) | Users + campus access |
+| Branding | Yes (More) | White-label |
+| Activity | Yes (More) | Timeline |
+| Notifications | Yes (More) | Alerts (incl. post stock) |
+| Search | Yes (More) | Find records |
 
 ---
 

@@ -64,6 +64,11 @@ describe("notifications", () => {
           n.kind === "delivery_dispatch" && n.href.includes(delivery.id),
       ),
     ).toBe(true);
+
+    const staffNotices = await listSupplierNotifications(chain.supplier.id, {
+      role: "supplier_staff",
+    });
+    expect(staffNotices).toEqual([]);
   });
 
   it("returns empty when nothing is pending", async () => {

@@ -1,28 +1,54 @@
 import Link from "next/link";
 import { NoticesList } from "@/components/notices-list";
 import { canSupplierManage, requireSupplierUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { listActorCampuses } from "@/modules/identity/supplier-campuses";
+import { listSupplierTeam } from "@/modules/identity/supplier-team";
 import { listSupplierNotifications } from "@/modules/reports/notifications";
 import { getSupplierBrand } from "@/modules/supply/branding";
-import { listSupplierDeliveries } from "@/modules/supply/deliveries";
 import { listSupplierInvoices } from "@/modules/supply/invoices";
-import { listSupplierOrders } from "@/modules/supply/orders";
 import { listSchoolPortfolio } from "@/modules/supply/portfolio";
-import { listSupplierTeam } from "@/modules/identity/supplier-team";
+
+function startOfLocalDay(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
 
 export default async function SupplierHomePage() {
   const user = await requireSupplierUser();
   const isAdmin = canSupplierManage(user.role);
 
-  const [orders, deliveries, invoices, portfolio, brand, notices, team] =
+  const [invoices, portfolio, brand, notices, team, campuses, awaitingStockPost] =
     await Promise.all([
-      listSupplierOrders(user.supplierId),
-      listSupplierDeliveries(user.supplierId),
       listSupplierInvoices(user.supplierId),
       listSchoolPortfolio(user.supplierId),
       getSupplierBrand(user.supplierId),
-      listSupplierNotifications(user.supplierId, { take: 5 }),
+      listSupplierNotifications(user.supplierId, { take: 5, role: user.role }),
       isAdmin ? listSupplierTeam(user.supplierId) : Promise.resolve([]),
+      listActorCampuses(user),
+      prisma.delivery.count({
+        where: {
+          supplierId: user.supplierId,
+          status: { in: ["packed", "in_transit"] },
+          receipt: null,
+        },
+      }),
     ]);
+
+  const campusIds = campuses.map((c) => c.id);
+  const [openPlans, issuedToday] = campusIds.length
+    ? await Promise.all([
+        prisma.studentUniformPlan.count({
+          where: { schoolId: { in: campusIds }, status: "open" },
+        }),
+        prisma.issueSlip.count({
+          where: {
+            schoolId: { in: campusIds },
+            status: "issued",
+            issuedAt: { gte: startOfLocalDay() },
+          },
+        }),
+      ])
+    : [0, 0];
 
   const openDeliveries = deliveries.filter(
     (d) => d.status === "packed" || d.status === "in_transit",
@@ -38,31 +64,87 @@ export default async function SupplierHomePage() {
           {displayName}
         </p>
         <h1 className="mt-1 text-[22px] font-semibold leading-7 sm:text-[28px] sm:leading-9">
-          {isAdmin ? "National supply monitor" : "Issue desk"}
+          {isAdmin ? "Supply home" : "Issue desk"}
         </h1>
         <p className="page-sub mt-1 max-w-lg">
           {isAdmin
-            ? "Oversee linked schools, team access, supply documents, and co-issue across campuses."
+            ? "Set up in order, post stock, then issue. Staff only see the issue path."
             : "Issue uniforms on campus, clear what is still owed, and check today’s reports."}
         </p>
         <div className="hero-cta-row mt-4 no-print">
           <Link href="/supplier/issue" className="btn btn-hero">
-            Co-issue desk
+            Issue
+          </Link>
+          <Link href="/supplier/incomplete" className="btn btn-hero-ghost">
+            Still owed
           </Link>
           <Link href="/supplier/reports" className="btn btn-hero-ghost">
             Reports
           </Link>
-          {isAdmin ? (
-            <Link href="/supplier/schools" className="btn btn-hero-ghost">
-              Schools
-            </Link>
-          ) : (
-            <Link href="/supplier/incomplete" className="btn btn-hero-ghost">
-              Still owed
-            </Link>
-          )}
         </div>
       </section>
+
+      {isAdmin && (
+        <section className="card national-panel animate-rise">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title text-base">Do this in order</h2>
+              <p className="card-subtitle">
+                First-time setup. Skip a step if it is already done.
+              </p>
+            </div>
+          </div>
+          <div className="card-body">
+            <ol className="space-y-3 text-sm">
+              <li>
+                <Link href="/supplier/schools" className="font-semibold text-[var(--accent)]">
+                  1. Schools
+                </Link>
+                <span className="text-[var(--muted)]">
+                  {" "}
+                  — create or link a campus, then open Catalogue &amp; kits
+                </span>
+              </li>
+              <li>
+                <Link href="/supplier/catalog" className="font-semibold text-[var(--accent)]">
+                  2. Products
+                </Link>
+                <span className="text-[var(--muted)]">
+                  {" "}
+                  — add SKUs, then select them onto the school catalogue
+                </span>
+              </li>
+              <li>
+                <Link href="/supplier/deliveries" className="font-semibold text-[var(--accent)]">
+                  3. Deliveries
+                </Link>
+                <span className="text-[var(--muted)]">
+                  {" "}
+                  — create a DN and Post to campus stock
+                </span>
+              </li>
+              <li>
+                <Link href="/supplier/team" className="font-semibold text-[var(--accent)]">
+                  4. Team
+                </Link>
+                <span className="text-[var(--muted)]">
+                  {" "}
+                  — assign campuses if staff will issue (skip if you issue yourself)
+                </span>
+              </li>
+              <li>
+                <Link href="/supplier/issue" className="font-semibold text-[var(--accent)]">
+                  5. Issue
+                </Link>
+                <span className="text-[var(--muted)]">
+                  {" "}
+                  — test one student, then use Still owed and Reports
+                </span>
+              </li>
+            </ol>
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="section-label">
@@ -72,15 +154,14 @@ export default async function SupplierHomePage() {
           {(isAdmin
             ? [
                 { label: "Linked schools", value: portfolio.length },
-                { label: "Open deliveries", value: openDeliveries },
+                { label: "Waiting for stock post", value: awaitingStockPost },
                 { label: "Unpaid invoices", value: unpaid },
                 { label: "Active team", value: activeTeam },
               ]
             : [
-                { label: "Linked schools", value: portfolio.length },
-                { label: "Open deliveries", value: openDeliveries },
-                { label: "Orders on file", value: orders.length },
-                { label: "Unpaid invoices", value: unpaid },
+                { label: "My campuses", value: campuses.length },
+                { label: "Still owed", value: openPlans },
+                { label: "Issued today", value: issuedToday },
               ]
           ).map((card) => (
             <div key={card.label} className="national-stat animate-rise">
@@ -156,7 +237,7 @@ export default async function SupplierHomePage() {
         <section className="national-note animate-rise">
           <strong>Staff access</strong>
           <ul>
-            <li>Co-issue uniforms and clear still-owed queues</li>
+            <li>Issue uniforms and clear still-owed queues on your campuses</li>
             <li>View issued-today and campus stock reports</li>
             <li>
               Ask an admin for schools, products, deliveries, invoices, or team

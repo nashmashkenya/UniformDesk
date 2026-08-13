@@ -35,8 +35,8 @@ Default visual theme: **National** (institutional green & gold). Switch anytime 
 
 ### Home (`/supplier`)
 
-- **Admin** — national supply monitor: schools, open deliveries, unpaid invoices, team size, portfolio.
-- **Staff** — issue desk focus with co-issue / still owed / reports shortcuts.
+- **Admin** — numbered setup path (Schools → Products → Deliveries → Team → Issue), then monitor.
+- **Staff** — issue desk: campuses, still owed, issued today. No setup/billing menus.
 
 ### Team (`/supplier/team`) — admin only
 

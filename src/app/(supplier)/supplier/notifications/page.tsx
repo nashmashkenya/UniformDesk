@@ -4,7 +4,10 @@ import { listSupplierNotifications } from "@/modules/reports/notifications";
 
 export default async function SupplierNotificationsPage() {
   const user = await requireSupplierUser();
-  const notices = await listSupplierNotifications(user.supplierId);
+  const notices = await listSupplierNotifications(user.supplierId, {
+    role: user.role,
+  });
+  const isStaff = user.role === "supplier_staff";
 
   return (
     <div className="page-stack">
@@ -12,7 +15,9 @@ export default async function SupplierNotificationsPage() {
         <div className="page-header-main">
           <h1 className="page-title">Notifications</h1>
           <p className="page-sub">
-            Packed deliveries to dispatch, unpaid invoices, and open orders.
+            {isStaff
+              ? "Issue-desk alerts. Stock posting, orders, and invoices are handled by an admin."
+              : "Deliveries waiting for stock post, unpaid invoices, and open orders."}
           </p>
         </div>
         <span className="chip">{notices.length}</span>

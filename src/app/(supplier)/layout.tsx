@@ -17,7 +17,7 @@ export default async function SupplierLayout({
 
   const [brand, noticeCount] = await Promise.all([
     getSupplierBrand(user.supplierId),
-    countSupplierNotifications(user.supplierId),
+    countSupplierNotifications(user.supplierId, user.role),
   ]);
 
   const brandStyle = brand

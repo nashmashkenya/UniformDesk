@@ -16,49 +16,38 @@ type NavItem = {
   label: string;
   desc?: string;
   icon: () => React.ReactNode;
+  section?: string;
 };
 
-const staffPrimary: NavItem[] = [
-  { href: "/supplier", label: "Home", desc: "Desk overview", icon: NavIcons.home },
+/** Daily desk — same order for admin and staff so the issue path is shared. */
+const deskPrimary: NavItem[] = [
+  {
+    href: "/supplier",
+    label: "Home",
+    desc: "Start here",
+    icon: NavIcons.home,
+    section: "Daily desk",
+  },
   {
     href: "/supplier/issue",
     label: "Issue",
     desc: "Issue uniforms on campus",
     icon: NavIcons.issue,
+    section: "Daily desk",
   },
   {
     href: "/supplier/incomplete",
     label: "Still owed",
     desc: "Incomplete uniforms",
     icon: NavIcons.shortage,
+    section: "Daily desk",
   },
   {
     href: "/supplier/reports",
     label: "Reports",
-    desc: "Issued today",
+    desc: "Issued today & stock",
     icon: NavIcons.reports,
-  },
-];
-
-const adminPrimary: NavItem[] = [
-  { href: "/supplier", label: "Home", desc: "Operations monitor", icon: NavIcons.home },
-  {
-    href: "/supplier/issue",
-    label: "Issue",
-    desc: "Co-issue on campus",
-    icon: NavIcons.issue,
-  },
-  {
-    href: "/supplier/reports",
-    label: "Reports",
-    desc: "Issued & stock",
-    icon: NavIcons.reports,
-  },
-  {
-    href: "/supplier/schools",
-    label: "Schools",
-    desc: "Portfolio & catalogues",
-    icon: NavIcons.schools,
+    section: "Daily desk",
   },
 ];
 
@@ -68,87 +57,149 @@ const staffMore: NavItem[] = [
     label: "Activity",
     desc: "Recent desk activity",
     icon: NavIcons.activity,
+    section: "Look up",
   },
   {
     href: "/supplier/notifications",
     label: "Notifications",
     desc: "Alerts",
     icon: NavIcons.bell,
+    section: "Look up",
   },
   {
     href: "/supplier/search",
     label: "Search",
     desc: "Find students & slips",
     icon: NavIcons.search,
+    section: "Look up",
   },
 ];
 
+/** More menu follows the setup → stock → optional billing → team path. */
 const adminMore: NavItem[] = [
   {
-    href: "/supplier/incomplete",
-    label: "Still owed",
-    desc: "Incomplete uniforms",
-    icon: NavIcons.shortage,
-  },
-  {
-    href: "/supplier/deliveries",
-    label: "Deliveries",
-    desc: "Pack & dispatch",
-    icon: NavIcons.deliveries,
-  },
-  {
-    href: "/supplier/orders",
-    label: "Orders",
-    desc: "School POs",
-    icon: NavIcons.orders,
-  },
-  {
-    href: "/supplier/invoices",
-    label: "Invoices",
-    desc: "Bill & collect",
-    icon: NavIcons.invoices,
-  },
-  {
-    href: "/supplier/activity",
-    label: "Activity",
-    desc: "Full ground monitor",
-    icon: NavIcons.activity,
-  },
-  {
-    href: "/supplier/notifications",
-    label: "Notifications",
-    desc: "Dispatch, collect, open orders",
-    icon: NavIcons.bell,
-  },
-  {
-    href: "/supplier/search",
-    label: "Search",
-    desc: "Schools, SKUs, supply docs",
-    icon: NavIcons.search,
+    href: "/supplier/schools",
+    label: "Schools",
+    desc: "1. Create or link a campus",
+    icon: NavIcons.schools,
+    section: "Set up",
   },
   {
     href: "/supplier/catalog",
     label: "Products",
-    desc: "Master SKUs & prices",
+    desc: "2. Master SKUs & prices",
     icon: NavIcons.catalog,
+    section: "Set up",
+  },
+  {
+    href: "/supplier/deliveries",
+    label: "Deliveries",
+    desc: "3. DN and post to campus stock",
+    icon: NavIcons.deliveries,
+    section: "Set up",
+  },
+  {
+    href: "/supplier/orders",
+    label: "Orders",
+    desc: "Optional purchase orders",
+    icon: NavIcons.orders,
+    section: "Optional billing",
+  },
+  {
+    href: "/supplier/invoices",
+    label: "Invoices",
+    desc: "Optional bill & collect",
+    icon: NavIcons.invoices,
+    section: "Optional billing",
   },
   {
     href: "/supplier/team",
     label: "Team",
-    desc: "Users, passwords, access",
+    desc: "Users, passwords, campus access",
     icon: NavIcons.users,
+    section: "Organisation",
   },
   {
     href: "/supplier/branding",
     label: "Branding",
     desc: "Organisation look",
     icon: NavIcons.branding,
+    section: "Organisation",
+  },
+  {
+    href: "/supplier/activity",
+    label: "Activity",
+    desc: "Full ground monitor",
+    icon: NavIcons.activity,
+    section: "Look up",
+  },
+  {
+    href: "/supplier/notifications",
+    label: "Notifications",
+    desc: "Post stock, collect, open orders",
+    icon: NavIcons.bell,
+    section: "Look up",
+  },
+  {
+    href: "/supplier/search",
+    label: "Search",
+    desc: "Schools, SKUs, supply docs",
+    icon: NavIcons.search,
+    section: "Look up",
   },
 ];
 
 function isActive(pathname: string, href: string) {
   if (href === "/supplier") return pathname === "/supplier";
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function renderNavSections(
+  links: NavItem[],
+  pathname: string,
+  onNavigate: () => void,
+) {
+  const seen = new Set<string>();
+  const nodes: React.ReactNode[] = [];
+  let lastSection: string | undefined;
+
+  for (const link of links) {
+    if (seen.has(link.href)) continue;
+    seen.add(link.href);
+
+    if (link.section && link.section !== lastSection) {
+      lastSection = link.section;
+      nodes.push(
+        <div key={`section:${link.section}`} className="nav-menu-label">
+          {link.section}
+        </div>,
+      );
+    }
+
+    const Icon = link.icon;
+    const active = isActive(pathname, link.href);
+    nodes.push(
+      <Link
+        key={link.href}
+        href={link.href}
+        role="menuitem"
+        className={`nav-menu-item ${active ? "is-active" : ""}`}
+        onClick={onNavigate}
+      >
+        <span className="nav-menu-icon">
+          <Icon />
+        </span>
+        <span>
+          <span className="block font-semibold">{link.label}</span>
+          {link.desc ? (
+            <span className="block text-xs text-[var(--muted)]">{link.desc}</span>
+          ) : null}
+        </span>
+      </Link>,
+    );
+  }
+
+  return nodes;
 }
 
 function useMenu() {
@@ -188,7 +239,7 @@ export function SupplierNav({
   const [mobileMore, setMobileMore] = useState(false);
   const mark = brandMark || "UD";
   const isAdmin = user.role === "supplier_admin";
-  const primary = isAdmin ? adminPrimary : staffPrimary;
+  const primary = deskPrimary;
   const moreLinks = isAdmin ? adminMore : staffMore;
   const noticeLabel =
     noticeCount > 99 ? "99+" : noticeCount > 0 ? String(noticeCount) : null;
@@ -257,30 +308,9 @@ export function SupplierNav({
               </button>
               {more.open && (
                 <div className="nav-dropdown nav-dropdown-center" role="menu">
-                  <div className="nav-menu-label">Supply tools</div>
-                  {moreLinks.map((link) => {
-                    const Icon = link.icon;
-                    const active = isActive(pathname, link.href);
-                    return (
-                      <Link
-                        key={link.href}
-                        href={link.href}
-                        role="menuitem"
-                        className={`nav-menu-item ${active ? "is-active" : ""}`}
-                        onClick={() => more.setOpen(false)}
-                      >
-                        <span className="nav-menu-icon">
-                          <Icon />
-                        </span>
-                        <span>
-                          <span className="block font-semibold">{link.label}</span>
-                          <span className="block text-xs text-[var(--muted)]">
-                            {link.desc}
-                          </span>
-                        </span>
-                      </Link>
-                    );
-                  })}
+                  {renderNavSections(moreLinks, pathname, () =>
+                    more.setOpen(false),
+                  )}
                 </div>
               )}
             </div>
@@ -385,25 +415,25 @@ export function SupplierNav({
             <span>Home</span>
           </Link>
           <Link
+            href="/supplier/incomplete"
+            className={`mobile-dock-link ${isActive(pathname, "/supplier/incomplete") ? "is-active" : ""}`}
+          >
+            <NavIcons.shortage />
+            <span>Owed</span>
+          </Link>
+          <Link
+            href="/supplier/issue"
+            className={`mobile-fab ${isActive(pathname, "/supplier/issue") ? "is-active" : ""}`}
+            aria-label="Issue uniforms"
+          >
+            <NavIcons.issue />
+          </Link>
+          <Link
             href="/supplier/reports"
             className={`mobile-dock-link ${isActive(pathname, "/supplier/reports") ? "is-active" : ""}`}
           >
             <NavIcons.reports />
             <span>Reports</span>
-          </Link>
-          <Link
-            href="/supplier/issue"
-            className={`mobile-fab ${isActive(pathname, "/supplier/issue") ? "is-active" : ""}`}
-            aria-label="Co-issue uniforms"
-          >
-            <NavIcons.issue />
-          </Link>
-          <Link
-            href="/supplier/deliveries"
-            className={`mobile-dock-link ${isActive(pathname, "/supplier/deliveries") ? "is-active" : ""}`}
-          >
-            <NavIcons.deliveries />
-            <span>Deliveries</span>
           </Link>
           <button
             type="button"
@@ -450,27 +480,11 @@ export function SupplierNav({
                 Close
               </button>
             </div>
-            {[...primary, ...moreLinks].map((link) => {
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="nav-menu-item"
-                  onClick={() => setMobileMore(false)}
-                >
-                  <span className="nav-menu-icon">
-                    <Icon />
-                  </span>
-                  <span>
-                    <span className="block font-semibold">{link.label}</span>
-                    <span className="block text-xs text-[var(--muted)]">
-                      {link.desc}
-                    </span>
-                  </span>
-                </Link>
-              );
-            })}
+            {renderNavSections(
+              [...primary, ...moreLinks],
+              pathname,
+              () => setMobileMore(false),
+            )}
             <div className="nav-menu-divider" />
             <form action={logoutAction}>
               <button type="submit" className="btn btn-ghost w-full">

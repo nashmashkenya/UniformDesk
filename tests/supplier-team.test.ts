@@ -94,6 +94,12 @@ describe("supplier staff path matrix", () => {
     expect(isSupplierStaffAllowedPath(staff, "/supplier/orders")).toBe(false);
     expect(isSupplierStaffAllowedPath(staff, "/supplier/team")).toBe(false);
     expect(isSupplierStaffAllowedPath(staff, "/supplier/catalog")).toBe(false);
+    expect(isSupplierStaffAllowedPath(staff, "/supplier/deliveries")).toBe(
+      false,
+    );
+    expect(isSupplierStaffAllowedPath(staff, "/supplier/invoices")).toBe(
+      false,
+    );
   });
 
   it("lets admins use all supplier paths", async () => {

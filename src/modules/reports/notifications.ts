@@ -1,3 +1,4 @@
+import type { Role } from "@/generated/prisma/client";
 import { formatMoney } from "@/lib/money";
 import { prisma } from "@/lib/db";
 
@@ -83,9 +84,12 @@ export async function listSchoolNotifications(
 
 export async function listSupplierNotifications(
   supplierId: string,
-  opts?: { take?: number },
+  opts?: { take?: number; role?: Role },
 ): Promise<DeskNotice[]> {
   const take = opts?.take ?? 12;
+  if (opts?.role === "supplier_staff") {
+    return [];
+  }
 
   const [invoices, awaitingStockPost, orders] = await Promise.all([
     prisma.invoice.findMany({
@@ -158,8 +162,14 @@ export async function countSchoolNotifications(schoolId: string) {
   return notices.length;
 }
 
-export async function countSupplierNotifications(supplierId: string) {
-  const notices = await listSupplierNotifications(supplierId, { take: 50 });
+export async function countSupplierNotifications(
+  supplierId: string,
+  role?: Role,
+) {
+  const notices = await listSupplierNotifications(supplierId, {
+    take: 50,
+    role,
+  });
   return notices.length;
 }
 

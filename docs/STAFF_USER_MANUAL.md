@@ -124,7 +124,7 @@ Password reset: ask a **supplier admin** on **Team**. You cannot reset passwords
 | **Notifications** (More) | Alerts (read — some links are admin-only) |
 | **Search** (More) | Lookup by keyword / document number |
 
-You will **not** see Schools, Products, Orders, Deliveries, Invoices, Team, or Branding.
+You will **not** see Schools, Products, Orders, Deliveries, Invoices, Team, or Branding. Phone dock matches the desk: Home, Still owed, Issue, Reports.
 
 ### Theme and sign out
 
